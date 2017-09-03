@@ -7,7 +7,7 @@ from .common import SimpleKVDiskService
 T = TypeVar("T")
 
 
-def _default_services() -> Set[SimpleKVDiskService]:
+def _default_services(path: str = None) -> Set[SimpleKVDiskService]:
     from .staticdata import StaticDataDiskService
     from .champion import ChampionDiskService
     from .summoner import SummonerDiskService
@@ -20,25 +20,25 @@ def _default_services() -> Set[SimpleKVDiskService]:
     from .leagues import LeaguesDiskService
 
     services = {
-        StaticDataDiskService(),
-        ChampionDiskService(),
+        StaticDataDiskService(path),
+        ChampionDiskService(path),
         SummonerDiskService(),
-        ChampionMasteryDiskService(),
-        RunePagesDiskService(),
-        MasteryPagesDiskService(),
-        MatchDiskService(),
-        SpectatorDiskService(),
-        ShardStatusDiskService(),
-        LeaguesDiskService()
+        ChampionMasteryDiskService(path),
+        RunePagesDiskService(path),
+        MasteryPagesDiskService(path),
+        MatchDiskService(path),
+        SpectatorDiskService(path),
+        ShardStatusDiskService(path),
+        LeaguesDiskService(path)
     }
 
     return services
 
 
 class SimpleKVDiskStore(CompositeDataSource, CompositeDataSink):
-    def __init__(self, services: Iterable[SimpleKVDiskService] = None):
+    def __init__(self, path: str = None, services: Iterable[SimpleKVDiskService] = None):
         if services is None:
-            services = _default_services()
+            services = _default_services(path)
 
         CompositeDataSource.__init__(self, services)
         CompositeDataSink.__init__(self, services)

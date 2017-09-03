@@ -12,13 +12,14 @@ T = TypeVar("T")
 
 
 class SimpleKVDiskService(DataSource, DataSink):
-    def __init__(self):
-        this_direc, _ = os.path.split(os.path.abspath(__file__))
-        kvstore_fn = os.path.join(this_direc, "..", "..", "..", "simplekv_store")  # path/to/top/level/cassiopeia/simplekv_store
-        if not os.path.exists(kvstore_fn):
-            os.mkdir(kvstore_fn)
-        self._store = FilesystemStore(kvstore_fn)
-        self.encoding = "utf-8"
+    def __init__(self, path: str = None):
+        if path is None:
+            import tempfile
+            path = tempfile.gettempdir()
+            path = os.path.join(path, "simplekv_store")
+        if not os.path.exists(path):
+            os.mkdir(path)
+        self._store = FilesystemStore(path)
 
     @abstractmethod
     def get(self, type: Type[T], query: Mapping[str, Any], context: PipelineContext = None) -> T:
