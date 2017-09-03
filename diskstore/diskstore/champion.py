@@ -44,7 +44,7 @@ class ChampionDiskService(SimpleKVDiskService):
             champions_query.pop("id")
         if "name" in champions_query:
             champions_query.pop("name")
-        champions = context[context.Keys.PIPELINE].get(ChampionListDto, query=champions_query, context=context)
+        champions = context[context.Keys.PIPELINE].get(ChampionListDto, query=champions_query)
 
         def find_matching_attribute(list_of_dtos, attrname, attrvalue):
             for dto in list_of_dtos:
