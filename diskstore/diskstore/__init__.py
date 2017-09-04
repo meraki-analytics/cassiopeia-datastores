@@ -22,7 +22,7 @@ def _default_services(path: str = None) -> Set[SimpleKVDiskService]:
     services = {
         StaticDataDiskService(path),
         ChampionDiskService(path),
-        SummonerDiskService(),
+        SummonerDiskService(path),
         ChampionMasteryDiskService(path),
         RunePagesDiskService(path),
         MasteryPagesDiskService(path),
