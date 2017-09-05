@@ -136,7 +136,9 @@ class StaticDataDiskService(SimpleKVDiskService):
                                                                                             locale=locale,
                                                                                             included_data=included_data,
                                                                                             data_by_id=data_by_id)
-        return ChampionListDto(self._get(key))
+        data = self._get(key)
+        data["data"] = {key: ChampionDto(champion) for key, champion in data["data"].items()}
+        return ChampionListDto(data)
 
     @put.register(ChampionListDto)
     def put_champion_list(self, item: ChampionListDto, context: PipelineContext = None) -> None:
