@@ -1,10 +1,11 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 import copy
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -37,9 +38,8 @@ class ChampionMasteryDiskService(SimpleKVDiskService):
         has("champion.id").as_(int)
 
     @get.register(ChampionMasteryDto)
+    @validate_query(_validate_get_champion_mastery_query, convert_region_to_platform)
     def get_champion_mastery(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionMasteryDto:
-        ChampionMasteryDiskService._validate_get_champion_mastery_query(query, context)
-
         champions_query = copy.deepcopy(query)
         champions_query.pop("champion.id")
         try:
@@ -64,6 +64,7 @@ class ChampionMasteryDiskService(SimpleKVDiskService):
         has("summoner.id").as_(int)
 
     @get.register(ChampionMasteryListDto)
+    @validate_query(_validate_get_champion_mastery_list_query, convert_region_to_platform)
     def get_champion_mastery_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionMasteryListDto:
         ChampionMasteryDiskService._validate_get_champion_mastery_list_query(query, context)
         platform = query["platform"].value

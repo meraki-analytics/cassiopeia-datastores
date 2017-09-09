@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region, Queue
 from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, ChallengerLeagueListDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -33,8 +34,8 @@ class LeaguesDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(LeaguePositionsDto)
+    @validate_query(_validate_get_league_positions_query, convert_region_to_platform)
     def get_league_positions(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeaguePositionsDto:
-        LeaguesDiskService._validate_get_league_positions_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=LeaguePositionsDto.__name__,
                                                  platform=query["platform"].value,
                                                  id=query["summoner.id"])
@@ -55,8 +56,8 @@ class LeaguesDiskService(SimpleKVDiskService):
         has("summoner.id").as_(int)
 
     @get.register(LeaguesListDto)
+    @validate_query(_validate_get_leagues_query, convert_region_to_platform)
     def get_leagues(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeaguesListDto:
-        LeaguesDiskService._validate_get_leagues_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=LeaguesListDto.__name__,
                                                  platform=query["platform"].value,
                                                  id=query["summoner.id"])
@@ -78,8 +79,8 @@ class LeaguesDiskService(SimpleKVDiskService):
         has("queue").as_(Queue)
 
     @get.register(ChallengerLeagueListDto)
+    @validate_query(_validate_get_challenger_league_query, convert_region_to_platform)
     def get_challenger_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChallengerLeagueListDto:
-        LeaguesDiskService._validate_get_challenger_league_query(query, context)
         key = "{clsname}.{platform}.{queue}".format(clsname=ChallengerLeagueListDto.__name__,
                                                     platform=query["platform"].value,
                                                     queue=query["queue"].value)
@@ -100,8 +101,8 @@ class LeaguesDiskService(SimpleKVDiskService):
         has("queue").as_(Queue)
 
     @get.register(MasterLeagueListDto)
+    @validate_query(_validate_get_master_league_query, convert_region_to_platform)
     def get_mastery_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasterLeagueListDto:
-        LeaguesDiskService._validate_get_master_league_query(query, context)
         key = "{clsname}.{platform}.{queue}".format(clsname=MasterLeagueListDto.__name__,
                                                     platform=query["platform"].value,
                                                     queue=query["queue"].value)

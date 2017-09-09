@@ -1,10 +1,11 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 import copy
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.champion import ChampionDto, ChampionListDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -36,9 +37,8 @@ class ChampionDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(ChampionDto)
+    @validate_query(_validate_get_champion_status_query, convert_region_to_platform)
     def get_champion_status(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionDto:
-        ChampionDiskService._validate_get_champion_status_query(query, context)
-
         champions_query = copy.deepcopy(query)
         if "id" in champions_query:
             champions_query.pop("id")
@@ -66,8 +66,8 @@ class ChampionDiskService(SimpleKVDiskService):
         can_have("freeToPlay").with_default(False)
 
     @get.register(ChampionListDto)
+    @validate_query(_validate_get_champion_status_list_query, convert_region_to_platform)
     def get_champion_status_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionListDto:
-        ChampionDiskService._validate_get_champion_status_list_query(query, context)
         platform = query["platform"].value
         free_to_play = str(query["freeToPlay"])
         key = "{clsname}.{platform}.{free_to_play}".format(clsname="ChampionStatusListDto",

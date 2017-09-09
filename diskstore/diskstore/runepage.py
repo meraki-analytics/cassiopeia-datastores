@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.runepage import RunePagesDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -35,6 +36,7 @@ class RunePagesDiskService(SimpleKVDiskService):
         has("summoner.id").as_(int)
 
     @get.register(RunePagesDto)
+    @validate_query(_validate_get_rune_pages_query, convert_region_to_platform)
     def get_rune_pages(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RunePagesDto:
         RunePagesDiskService._validate_get_rune_pages_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=RunePagesDto.__name__,

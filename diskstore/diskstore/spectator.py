@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.spectator import FeaturedGamesDto, CurrentGameInfoDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -34,8 +35,8 @@ class SpectatorDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(FeaturedGamesDto)
+    @validate_query(_validate_get_featured_games_query, convert_region_to_platform)
     def get_featured_games(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> FeaturedGamesDto:
-        SpectatorDiskService._validate_get_featured_games_query(query, context)
         key = "{clsname}.{platform}".format(clsname=FeaturedGamesDto.__name__, platform=query["platform"].value)
         return FeaturedGamesDto(self._get(key))
 
@@ -54,8 +55,8 @@ class SpectatorDiskService(SimpleKVDiskService):
         has("summoner.id").as_(int)
 
     @get.register(CurrentGameInfoDto)
+    @validate_query(_validate_get_current_game_query, convert_region_to_platform)
     def get_current_game(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> CurrentGameInfoDto:
-        SpectatorDiskService._validate_get_current_game_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=CurrentGameInfoDto.__name__,
                                                  platform=query["platform"].value,
                                                  id=query["summoner.id"])

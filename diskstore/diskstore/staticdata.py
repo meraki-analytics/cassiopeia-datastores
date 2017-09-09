@@ -1,7 +1,7 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 import copy
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.staticdata.champion import ChampionDto, ChampionListDto
@@ -15,6 +15,7 @@ from cassiopeia.dto.staticdata.realm import RealmDto
 from cassiopeia.dto.staticdata.language import LanguagesDto, LanguageStringsDto
 from cassiopeia.dto.staticdata.profileicon import ProfileIconDataDto
 from cassiopeia.datastores.riotapi.staticdata import _get_default_locale, _get_latest_version
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -46,8 +47,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(VersionListDto)
+    @validate_query(_validate_get_versions_query, convert_region_to_platform)
     def get_versions(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> VersionListDto:
-        StaticDataDiskService._validate_get_versions_query(query, context)
         key = "{clsname}.{platform}".format(clsname=VersionListDto.__name__, platform=query["platform"].value)
         return VersionListDto(self._get(key))
 
@@ -64,8 +65,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(RealmDto)
+    @validate_query(_validate_get_realms_query, convert_region_to_platform)
     def get_realms(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RealmDto:
-        StaticDataDiskService._validate_get_realms_query(query, context)
         key = "{clsname}.{platform}".format(clsname=RealmDto.__name__, platform=query["platform"].value)
         return RealmDto(self._get(key))
 
@@ -86,9 +87,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(ChampionDto)
+    @validate_query(_validate_get_champion_query, convert_region_to_platform)
     def get_champion(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionDto:
-        StaticDataDiskService._validate_get_champion_query(query, context)
-
         champions_query = copy.deepcopy(query)
         if "id" in champions_query:
             champions_query.pop("id")
@@ -123,8 +123,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("dataById").with_default(True)
 
     @get.register(ChampionListDto)
+    @validate_query(_validate_get_champion_list_query, convert_region_to_platform)
     def get_champion_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionListDto:
-        StaticDataDiskService._validate_get_champion_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -164,9 +164,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(ItemDto)
+    @validate_query(_validate_get_item_query, convert_region_to_platform)
     def get_item(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ItemDto:
-        StaticDataDiskService._validate_get_item_query(query, context)
-
         items_query = copy.deepcopy(query)
         if "id" in items_query:
             items_query.pop("id")
@@ -200,8 +199,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(ItemListDto)
+    @validate_query(_validate_get_item_list_query, convert_region_to_platform)
     def get_item_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ItemListDto:
-        StaticDataDiskService._validate_get_item_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -240,9 +239,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(RuneDto)
+    @validate_query(_validate_get_rune_query, convert_region_to_platform)
     def get_rune(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RuneDto:
-        StaticDataDiskService._validate_get_rune_query(query, context)
-
         runes_query = copy.deepcopy(query)
         if "id" in runes_query:
             runes_query.pop("id")
@@ -276,8 +274,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(RuneListDto)
+    @validate_query(_validate_get_rune_list_query, convert_region_to_platform)
     def get_rune_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RuneListDto:
-        StaticDataDiskService._validate_get_rune_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -312,9 +310,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(MasteryDto)
+    @validate_query(_validate_get_mastery_query, convert_region_to_platform)
     def get_mastery(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasteryDto:
-        StaticDataDiskService._validate_get_mastery_query(query, context)
-
         masteries_query = copy.deepcopy(query)
         if "id" in masteries_query:
             masteries_query.pop("id")
@@ -348,8 +345,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(MasteryListDto)
+    @validate_query(_validate_get_mastery_list_query, convert_region_to_platform)
     def get_mastery_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasteryListDto:
-        StaticDataDiskService._validate_get_mastery_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -384,9 +381,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(SummonerSpellDto)
+    @validate_query(_validate_get_summoner_spell_query, convert_region_to_platform)
     def get_summoner_spell(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> SummonerSpellDto:
-        StaticDataDiskService._validate_get_summoner_spell_query(query, context)
-
         summoner_spells_query = copy.deepcopy(query)
         if "id" in summoner_spells_query:
             summoner_spells_query.pop("id")
@@ -420,8 +416,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("includedData").with_default({"all"})
 
     @get.register(SummonerSpellListDto)
+    @validate_query(_validate_get_summoner_spell_list_query, convert_region_to_platform)
     def get_summoner_spell_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> SummonerSpellListDto:
-        StaticDataDiskService._validate_get_summoner_spell_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -455,9 +451,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("locale").with_default(_get_default_locale, supplies_type=str)
 
     @get.register(MapDto)
+    @validate_query(_validate_get_map_query, convert_region_to_platform)
     def get_map(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MapDto:
-        StaticDataDiskService._validate_get_map_query(query, context)
-
         maps_query = copy.deepcopy(query)
         if "id" in maps_query:
             maps_query.pop("id")
@@ -489,8 +484,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("locale").with_default(_get_default_locale, supplies_type=str)
 
     @get.register(MapListDto)
+    @validate_query(_validate_get_map_list_query, convert_region_to_platform)
     def get_map_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MapListDto:
-        StaticDataDiskService._validate_get_map_list_query(query, context)
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -519,9 +514,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("locale").with_default(_get_default_locale, supplies_type=str)
 
     @get.register(ProfileIconDataDto)
+    @validate_query(_validate_get_profile_icons_query, convert_region_to_platform)
     def get_profile_icons(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ProfileIconDataDto:
-        StaticDataDiskService._validate_get_profile_icons_query(query, context)
-
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
@@ -548,9 +542,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(LanguagesDto)
+    @validate_query(_validate_get_languages_query, convert_region_to_platform)
     def get_language(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LanguagesDto:
-        StaticDataDiskService._validate_get_languages_query(query, context)
-
         platform = query["platform"].value
         key = "{clsname}.{platform}".format(clsname=LanguagesDto.__name__, platform=platform)
         return LanguagesDto(self._get(key))
@@ -574,9 +567,8 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("locale").with_default(_get_default_locale, supplies_type=str)
 
     @get.register(LanguageStringsDto)
+    @validate_query(_validate_get_language_strings_query, convert_region_to_platform)
     def get_language_strings(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LanguageStringsDto:
-        StaticDataDiskService._validate_get_language_strings_query(query, context)
-
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]

@@ -1,11 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
-import copy
-import datetime
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.match import MatchDto, MatchListDto, TimelineDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -31,15 +30,15 @@ class MatchDiskService(SimpleKVDiskService):
     # Match
 
     _validate_get_match_query = Query. \
-        has("gameId").as_(int).also. \
+        has("id").as_(int).also. \
         has("platform").as_(Platform)
 
     @get.register(MatchDto)
+    @validate_query(_validate_get_match_query, convert_region_to_platform)
     def get_match(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MatchDto:
-        MatchDiskService._validate_get_match_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=MatchDto.__name__,
                                                  platform=query["platform"].value,
-                                                 id=query["gameId"])
+                                                 id=query["id"])
         return MatchDto(self._get(key))
 
     @put.register(MatchDto)
@@ -116,15 +115,15 @@ class MatchDiskService(SimpleKVDiskService):
     # Timeline
 
     _validate_get_timeline_query = Query. \
-        has("matchId").as_(int).also. \
+        has("id").as_(int).also. \
         has("platform").as_(Platform)
 
     @get.register(TimelineDto)
+    @validate_query(_validate_get_timeline_query, convert_region_to_platform)
     def get_timeline(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> TimelineDto:
-        MatchDiskService._validate_get_timeline_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=TimelineDto.__name__,
                                                  platform=query["platform"].value,
-                                                 id=query["matchId"])
+                                                 id=query["id"])
         return TimelineDto(self._get(key))
 
     @put.register(TimelineDto)

@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.status import ShardStatusDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -34,8 +35,8 @@ class ShardStatusDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(ShardStatusDto)
+    @validate_query(_validate_get_status_query, convert_region_to_platform)
     def get_status(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ShardStatusDto:
-        ShardStatusDiskService._validate_get_status_query(query, context)
         key = "{clsname}.{platform}".format(clsname=ShardStatusDto.__name__, platform=query["platform"].value)
         return ShardStatusDto(self._get(key))
 

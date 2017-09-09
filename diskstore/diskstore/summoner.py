@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError
+from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.summoner import SummonerDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -37,10 +38,12 @@ class SummonerDiskService(SimpleKVDiskService):
         has("platform").as_(Platform)
 
     @get.register(SummonerDto)
+    @validate_query(_validate_get_summoner_query, convert_region_to_platform)
     def get_summoner(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> SummonerDto:
-        SummonerDiskService._validate_get_summoner_query(query, context)
         platform_str  = query["platform"].value
         summoner_name = query.get("name", "").replace(" ", "").lower()
+        # Need to hash the name because it can have invalid characters.
+        summoner_name = str(summoner_name.encode("utf-8"))
         for key in self._store:
             if key.startswith("SummonerDto."):
                 _, platform, id_, account_id, name = key.split(".")
@@ -56,9 +59,11 @@ class SummonerDiskService(SimpleKVDiskService):
     @put.register(SummonerDto)
     def put_summoner(self, item: SummonerDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
+        name = item["name"].replace(" ", "").lower()
+        name = name.encode("utf-8")
         key = "{clsname}.{platform}.{id}.{account_id}.{name}".format(clsname=SummonerDto.__name__,
                                                                      platform=platform,
                                                                      id=item["id"],
                                                                      account_id=item["accountId"],
-                                                                     name=item["name"].replace(" ", "").lower())
+                                                                     name=name)
         self._put(key, item)

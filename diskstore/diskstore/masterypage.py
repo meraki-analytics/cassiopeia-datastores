@@ -1,9 +1,10 @@
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
-from datapipelines import DataSource, DataSink, PipelineContext, Query
+from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region
 from cassiopeia.dto.masterypage import MasteryPagesDto
+from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
 T = TypeVar("T")
@@ -35,8 +36,8 @@ class MasteryPagesDiskService(SimpleKVDiskService):
         has("summoner.id").as_(int)
 
     @get.register(MasteryPagesDto)
+    @validate_query(_validate_get_mastery_pages_query, convert_region_to_platform)
     def get_mastery_pages(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasteryPagesDto:
-        MasteryPagesDiskService._validate_get_mastery_pages_query(query, context)
         key = "{clsname}.{platform}.{id}".format(clsname=MasteryPagesDto.__name__,
                                                  platform=query["platform"].value,
                                                  id=query["summoner.id"])
