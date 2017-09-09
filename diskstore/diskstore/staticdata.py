@@ -572,7 +572,7 @@ class StaticDataDiskService(SimpleKVDiskService):
         platform = query["platform"].value
         version = query["version"]
         locale = query["locale"]
-        key = "{clsname}.{platform}.{version}.{locale}".format(clsname=ProfileIconDataDto.__name__,
+        key = "{clsname}.{platform}.{version}.{locale}".format(clsname=LanguageStringsDto.__name__,
                                                                platform=platform,
                                                                version=version,
                                                                locale=locale)
