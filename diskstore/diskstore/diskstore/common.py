@@ -73,6 +73,10 @@ class SimpleKVDiskService(DataSource, DataSink):
         self._store = simplekv.fs.FilesystemStore(path)
         self._expirations = dict(expirations) if expirations is not None else default_expirations
         for key, value in self._expirations.items():
+            if isinstance(key, str):
+                new_key = globals()[key]
+                self._expirations[new_key] = self._expirations.pop(key)
+                key = new_key
             if value == -1:
                 self._expirations[key] = simplekv.FOREVER
             elif isinstance(value, datetime.timedelta):
@@ -106,13 +110,23 @@ class SimpleKVDiskService(DataSource, DataSink):
         return data
 
     def _put(self, key: str, item: DtoObject):
-        expire_seconds = self._expirations[item.__class__]
+        expire_seconds = self._expirations.get(item.__class__, default_expirations[item.__class__])
 
         if expire_seconds != 0 and key not in self._store:
             item = (item, expire_seconds, datetime.datetime.now().timestamp())
             pickle_item = pickle.dumps(item)
             pickle_item = pickle_item
             self._store.put(key, pickle_item)
+
+    def clear(self, type: Type[T] = None):
+        if type is None:
+            for key in self._store:
+                self._store.delete(key)
+        else:
+            typename = type.__name__
+            for key in self._store:
+                if key.startswith(typename):
+                    self._store.delete(key)
 
     def expire(self, type: Any = None):
         if type is not None:

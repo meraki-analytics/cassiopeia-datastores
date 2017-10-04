@@ -1,4 +1,4 @@
-from typing import TypeVar, Type, Set, Iterable
+from typing import TypeVar, Type, Set, Iterable, Mapping
 
 from datapipelines import CompositeDataSource, CompositeDataSink
 
@@ -7,7 +7,7 @@ from .common import SimpleKVDiskService
 T = TypeVar("T")
 
 
-def _default_services(path: str = None) -> Set[SimpleKVDiskService]:
+def _default_services(path: str = None, expirations: Mapping[type, float] = None) -> Set[SimpleKVDiskService]:
     from .staticdata import StaticDataDiskService
     from .champion import ChampionDiskService
     from .summoner import SummonerDiskService
@@ -20,25 +20,25 @@ def _default_services(path: str = None) -> Set[SimpleKVDiskService]:
     from .leagues import LeaguesDiskService
 
     services = {
-        StaticDataDiskService(path),
-        ChampionDiskService(path),
-        SummonerDiskService(path),
-        ChampionMasteryDiskService(path),
-        RunePagesDiskService(path),
-        MasteryPagesDiskService(path),
-        MatchDiskService(path),
-        SpectatorDiskService(path),
-        ShardStatusDiskService(path),
-        LeaguesDiskService(path)
+        StaticDataDiskService(path, expirations=expirations),
+        ChampionDiskService(path, expirations=expirations),
+        SummonerDiskService(path, expirations=expirations),
+        ChampionMasteryDiskService(path, expirations=expirations),
+        RunePagesDiskService(path, expirations=expirations),
+        MasteryPagesDiskService(path, expirations=expirations),
+        MatchDiskService(path, expirations=expirations),
+        SpectatorDiskService(path, expirations=expirations),
+        ShardStatusDiskService(path, expirations=expirations),
+        LeaguesDiskService(path, expirations=expirations)
     }
 
     return services
 
 
 class SimpleKVDiskStore(CompositeDataSource, CompositeDataSink):
-    def __init__(self, path: str = None, services: Iterable[SimpleKVDiskService] = None):
+    def __init__(self, path: str = None, expirations: Mapping[type, float] = None, services: Iterable[SimpleKVDiskService] = None):
         if services is None:
-            services = _default_services(path)
+            services = _default_services(path, expirations)
 
         CompositeDataSource.__init__(self, services)
         CompositeDataSink.__init__(self, services)
