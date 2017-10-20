@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import sys
-
 from setuptools import setup, find_packages
 
 
@@ -11,16 +9,12 @@ install_requires = [
     "simplekv"
 ]
 
-# Require python 3.6
-if sys.version_info.major != 3 and sys.version_info.minor != 6:
-    sys.exit("Cassiopeia requires Python 3.6.")
-
 setup(
     name="cassiopeia-diskstore",
-    version="1.0.1",
+    version="1.0.0",
     author="Jason Maldonis; Rob Rua",
     author_email="team@merakianalytics.com",
-    url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/diskstore",
+    url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/cassiopeia-diskstore",
     description="A disk data store for the Cassiopeia League of Legends wrapper.",
     classifiers=[
         "Development Status :: 4 - Beta",
