@@ -3,7 +3,7 @@ from typing import Type, TypeVar, MutableMapping, Any, Iterable
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region, Queue
-from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, ChallengerLeagueListDto
+from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, ChallengerLeagueListDto, LeagueListDto
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
@@ -51,26 +51,17 @@ class LeaguesDiskService(SimpleKVDiskService):
 
     # Leagues
 
-    _validate_get_leagues_query = Query. \
+    _validate_get_league_query = Query. \
         has("platform").as_(Platform).also. \
-        has("summoner.id").as_(int)
+        has("id").as_(str)
 
-    @get.register(LeaguesListDto)
-    @validate_query(_validate_get_leagues_query, convert_region_to_platform)
-    def get_leagues(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeaguesListDto:
-        key = "{clsname}.{platform}.{id}".format(clsname=LeaguesListDto.__name__,
+    @get.register(LeagueListDto)
+    @validate_query(_validate_get_league_query, convert_region_to_platform)
+    def get_leagues(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeagueListDto:
+        key = "{clsname}.{platform}.{id}".format(clsname=LeagueListDto.__name__,
                                                  platform=query["platform"].value,
-                                                 id=query["summoner.id"])
-        return LeaguesListDto(self._get(key))
-
-    @put.register(LeaguesListDto)
-    def put_leagues(self, item: LeaguesListDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"]).platform.value
-        key = "{clsname}.{platform}.{id}".format(clsname=LeaguesListDto.__name__,
-                                                 platform=platform,
-                                                 id=item["summonerId"])
-        self._put(key, item)
-
+                                                 id=query["id"])
+        return LeagueListDto(self._get(key))
 
     # Challenger
 

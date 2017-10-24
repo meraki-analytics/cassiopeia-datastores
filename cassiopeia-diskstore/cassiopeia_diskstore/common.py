@@ -10,7 +10,7 @@ from datapipelines import DataSource, DataSink, PipelineContext, NotFoundError
 from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.champion import ChampionDto as ChampionStatusDto, ChampionListDto as ChampionStatusListDto
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
-from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, ChallengerLeagueListDto
+from cassiopeia.dto.league import LeaguePositionsDto, LeagueListDto, MasterLeagueListDto, ChallengerLeagueListDto
 from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, MasteryDto, MasteryListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
 from cassiopeia.dto.match import MatchDto, TimelineDto
 from cassiopeia.dto.masterypage import MasteryPageDto, MasteryPagesDto
@@ -46,7 +46,7 @@ default_expirations = {
     ChampionMasteryDto: datetime.timedelta(days=7),
     ChampionMasteryListDto: datetime.timedelta(days=7),
     LeaguePositionsDto: datetime.timedelta(hours=6),
-    LeaguesListDto: datetime.timedelta(hours=6),
+    LeagueListDto: datetime.timedelta(hours=6),
     ChallengerLeagueListDto: datetime.timedelta(hours=6),
     MasterLeagueListDto: datetime.timedelta(hours=6),
     MatchDto: -1,
