@@ -59,8 +59,8 @@ class MatchDiskService(SimpleKVDiskService):
         has("platform").as_(Platform).also. \
         can_have("beginTime").as_(int).also. \
         can_have("endTime").as_(int).also. \
-        can_have("beginIndex").with_default(0).also. \
-        can_have("endIndex").with_default(50).also. \
+        can_have("beginIndex").as_(int).also. \
+        can_have("endIndex").as_(int).also. \
         can_have("seasons").as_(Iterable).also. \
         can_have("champion.ids").as_(Iterable).also. \
         can_have("queues").as_(Iterable).also. \
