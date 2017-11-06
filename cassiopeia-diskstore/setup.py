@@ -11,7 +11,7 @@ install_requires = [
 
 setup(
     name="cassiopeia-diskstore",
-    version="1.0.0",
+    version="1.0.1",
     author="Jason Maldonis; Rob Rua",
     author_email="team@merakianalytics.com",
     url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/cassiopeia-diskstore",
