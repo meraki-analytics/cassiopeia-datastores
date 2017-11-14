@@ -12,8 +12,6 @@ def _default_services(path: str = None, expirations: Mapping[type, float] = None
     from .champion import ChampionDiskService
     from .summoner import SummonerDiskService
     from .championmastery import ChampionMasteryDiskService
-    from .runepage import RunePagesDiskService
-    from .masterypage import MasteryPagesDiskService
     from .match import MatchDiskService
     from .spectator import SpectatorDiskService
     from .status import ShardStatusDiskService
@@ -24,8 +22,6 @@ def _default_services(path: str = None, expirations: Mapping[type, float] = None
         ChampionDiskService(path, expirations=expirations),
         SummonerDiskService(path, expirations=expirations),
         ChampionMasteryDiskService(path, expirations=expirations),
-        RunePagesDiskService(path, expirations=expirations),
-        MasteryPagesDiskService(path, expirations=expirations),
         MatchDiskService(path, expirations=expirations),
         SpectatorDiskService(path, expirations=expirations),
         ShardStatusDiskService(path, expirations=expirations),

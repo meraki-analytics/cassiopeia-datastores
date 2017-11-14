@@ -11,10 +11,8 @@ from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.champion import ChampionDto as ChampionStatusDto, ChampionListDto as ChampionStatusListDto
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
 from cassiopeia.dto.league import LeaguePositionsDto, LeagueListDto, MasterLeagueListDto, ChallengerLeagueListDto
-from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, MasteryDto, MasteryListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
+from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
 from cassiopeia.dto.match import MatchDto, TimelineDto
-from cassiopeia.dto.masterypage import MasteryPageDto, MasteryPagesDto
-from cassiopeia.dto.runepage import RunePageDto, RunePagesDto
 from cassiopeia.dto.summoner import SummonerDto
 from cassiopeia.dto.status import ShardStatusDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
@@ -27,10 +25,6 @@ default_expirations = {
     VersionListDto: datetime.timedelta(hours=6),
     ChampionDto: -1,
     ChampionListDto: -1,
-    MasteryDto: -1,
-    MasteryListDto: -1,
-    RuneDto: -1,
-    RuneListDto: -1,
     ItemDto: -1,
     ItemListDto: -1,
     SummonerSpellDto: -1,
@@ -51,10 +45,6 @@ default_expirations = {
     MasterLeagueListDto: datetime.timedelta(hours=6),
     MatchDto: -1,
     TimelineDto: -1,
-    MasteryPageDto: datetime.timedelta(days=1),
-    MasteryPagesDto: datetime.timedelta(days=1),
-    RunePageDto: datetime.timedelta(days=1),
-    RunePagesDto: datetime.timedelta(days=1),
     SummonerDto: datetime.timedelta(days=1),
     ShardStatusDto: datetime.timedelta(hours=1),
     CurrentGameInfoDto: datetime.timedelta(hours=0.5),
