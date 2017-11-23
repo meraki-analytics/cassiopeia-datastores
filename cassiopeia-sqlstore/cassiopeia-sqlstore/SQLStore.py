@@ -8,7 +8,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query,NotFoundError
 
-from cassiopeia.data import Platform, Region
+from cassiopeia.data import Platform, Region, Queue, Tier
 
 from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.summoner import SummonerDto
@@ -309,6 +309,45 @@ class SQLStore(DataSource, DataSink):
 
     @put.register(LeagueListDto)
     def put_league_list(self, item: LeagueListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"]).platform.value
+        item["platformId"] = platform
+        self._put(SQLLeague(**item))
+
+    _validate_get_challenger_league_query = Query. \
+        has("platform").as_(Platform).also. \
+        has("queue").as_(Queue)
+
+    @get.register(ChallengerLeagueListDto)
+    @validate_query(_validate_get_challenger_league_query, convert_region_to_platform)
+    def get_challenger_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChallengerLeagueListDto:
+        platform = query["platform"].value
+        queue = query["queue"].value
+        league = self._one(self._session.query(SQLLeague).filter_by(platformId=platform) \
+                                .filter_by(queue=queue).filter_by(tier=Tier.challenger.value))
+        return ChallengerLeagueListDto(**league.to_dto())
+
+    @put.register(ChallengerLeagueListDto)
+    def put_challenger_league(self, item: ChallengerLeagueListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"]).platform.value
+        item["platformId"] = platform
+        self._put(SQLLeague(**item))
+
+
+    _validate_get_master_league_query = Query. \
+        has("platform").as_(Platform).also. \
+        has("queue").as_(Queue)
+
+    @get.register(MasterLeagueListDto)
+    @validate_query(_validate_get_master_league_query, convert_region_to_platform)
+    def get_master_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasterLeagueListDto:
+        platform = query["platform"].value
+        queue = query["queue"].value
+        league = self._one(self._session.query(SQLLeague).filter_by(platformId=platform) \
+                                .filter_by(queue=queue).filter_by(tier=Tier.master.value))
+        return MasterLeagueListDto(**league.to_dto())
+
+    @put.register(MasterLeagueListDto)
+    def put_master_league(self, item: MasterLeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
         self._put(SQLLeague(**item))
