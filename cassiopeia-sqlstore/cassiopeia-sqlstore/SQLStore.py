@@ -16,7 +16,7 @@ from cassiopeia.dto.match import MatchDto, TimelineDto
 from cassiopeia.dto.championmastery import ChampionMasteryListDto, ChampionMasteryDto
 from cassiopeia.dto.champion import ChampionListDto, ChampionDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
-from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto
+from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto, ChallengerLeagueListDto, MasterLeagueListDto
 
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 
@@ -104,14 +104,15 @@ class SQLStore(DataSource, DataSink):
             return value
 
     def _all(self, query):
+        print(query.count())
         if query.count() > 0:
-            results = [value.to_dto() for value in query.all()]
+            results = query.all()
             for result in results:
                 if result.has_expired(self._expirations):
                     results.delete()
                     self._session.commit()
                     raise NotFoundError
-            return results
+            return [value.to_dto() for value in results]
         else:
             raise NotFoundError
 
@@ -285,20 +286,14 @@ class SQLStore(DataSource, DataSink):
     @validate_query(_validate_get_featured_games_query, convert_region_to_platform)
     def get_featured_games(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> FeaturedGamesDto:
         platform = query["platform"].value
-        games = self._all(self._session.query(SQLCurrentGameInfo).filter(SQLCurrentGameInfo.platformId == platform) \
-                                .filter(SQLCurrentGameInfo.featured == True))
-        return FeaturedGamesDto({"clientRefreshInterval": 300, "gameList":games})
+        games = self._all(self._session.query(SQLCurrentGameInfo).filter_by(platformId=platform) \
+                                .filter_by(featured=True))
+        return FeaturedGamesDto({"clientRefreshInterval": 300, "gameList":games, "region": query["platform"].region.value})
 
     @put.register(FeaturedGamesDto)
     def put_featured_games(self, item: FeaturedGamesDto, context: PipelineContext = None) -> None:
         for game in item["gameList"]:
             self._put(SQLCurrentGameInfo(featured=True, **game))
-
-    @put.register(LeagueListDto)
-    def put_league_list(self, item: LeagueListDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"]).platform.value
-        item["platformId"] = platform
-        self._put(SQLLeague(**item))
 
     _validate_get_league_query = Query. \
         has("platform").as_(Platform).also. \
@@ -311,6 +306,12 @@ class SQLStore(DataSource, DataSink):
         league = self._one(self._session.query(SQLLeague).filter_by(platformId=platform) \
                                 .filter_by(leagueId=query["id"]))
         return league.to_dto()
+
+    @put.register(LeagueListDto)
+    def put_league_list(self, item: LeagueListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"]).platform.value
+        item["platformId"] = platform
+        self._put(SQLLeague(**item))
 
 
     _validate_get_league_positions_query = Query. \

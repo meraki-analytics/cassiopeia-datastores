@@ -1,6 +1,7 @@
 import copy
 from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean,  ForeignKeyConstraint
 
+from cassiopeia.data import Platform
 from cassiopeia.dto.spectator import CurrentGameInfoDto
 from cassiopeia.dto.common import DtoObject
 
@@ -77,5 +78,7 @@ class SQLCurrentGameInfo(SQLBaseObject):
     def to_dto(self):
         dto = super().to_dto()
         dto["observers"] = {"encryptionKey":dto["encryptionKey"]}
+        dto["region"] = Platform(dto.pop("platformId")).region.value
+        return dto
 
 map_object(SQLCurrentGameInfo)
