@@ -1,5 +1,5 @@
 import copy
-from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean,  ForeignKeyConstraint
+from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKeyConstraint
 
 from cassiopeia.data import Platform
 from cassiopeia.dto.spectator import CurrentGameInfoDto

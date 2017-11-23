@@ -1,4 +1,4 @@
-from sqlalchemy import event,Table, Column, Integer, String, BigInteger, Boolean,  ForeignKeyConstraint, Numeric
+from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKeyConstraint, Numeric
 from sqlalchemy.orm import foreign, remote
 
 from cassiopeia.dto.league import LeagueListDto, LeaguePositionDto, LeaguePositionsDto
