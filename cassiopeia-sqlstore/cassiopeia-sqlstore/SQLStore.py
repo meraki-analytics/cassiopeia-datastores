@@ -17,6 +17,7 @@ from cassiopeia.dto.championmastery import ChampionMasteryListDto, ChampionMaste
 from cassiopeia.dto.champion import ChampionListDto, ChampionDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
 from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto, ChallengerLeagueListDto, MasterLeagueListDto
+from cassiopeia.dto.status import ShardStatusDto
 
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 
@@ -28,6 +29,7 @@ from .champion import SQLChampionStatus
 from .championmastery import SQLChampionMastery
 from .spectator import SQLCurrentGameInfo
 from .league import SQLLeague, SQLLeaguePositions, SQLLeaguePosition
+from .status import SQLShardStatus
 
 T = TypeVar("T")
 
@@ -46,7 +48,8 @@ default_expirations = {
     SummonerDto: datetime.timedelta(days=1),
     CurrentGameInfoDto: datetime.timedelta(hours=0.5),
     LeagueListDto:datetime.timedelta(hours=6),
-    LeaguePositionsDto: datetime.timedelta(hours=6)
+    LeaguePositionsDto: datetime.timedelta(hours=6),
+    ShardStatusDto: datetime.timedelta(hours=1),
 }
 
 class SQLStore(DataSource, DataSink):
@@ -496,3 +499,24 @@ class SQLStore(DataSource, DataSink):
         # Pop the positions so sqlalchemy does not try to insert it again, which would result in a IntegrityError beecause of duplicated keys
         item.pop("positions")
         self._put(SQLLeaguePositions(**item))
+
+
+
+    #######################
+    # LoL-Status Endpoint #
+    #######################
+
+    _validate_get_status_query = Query. \
+        has("platform").as_(Platform)
+
+    @get.register(ShardStatusDto)
+    @validate_query(_validate_get_status_query, convert_region_to_platform)
+    def get_status(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ShardStatusDto:
+        status = self._one(self._session.query(SQLShardStatus) \
+                                .filter_by(slug=query["platform"].region.value.lower()))
+        print(status.to_dto())
+        return status.to_dto()
+
+    @put.register(ShardStatusDto)
+    def put_status(self, item: ShardStatusDto, context: PipelineContext = None) -> None:
+        self._put(SQLShardStatus(**item))
