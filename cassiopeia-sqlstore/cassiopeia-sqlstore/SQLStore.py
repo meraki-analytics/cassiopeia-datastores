@@ -129,12 +129,18 @@ class SQLStore(DataSource, DataSink):
 
     def _put(self, item:SQLBaseObject):
         """Puts a item into the database. Updates lastUpdate column"""
+        if item._dto_type in self._expirations and self._expirations[item._dto_type] == 0:
+            # The expiration time has been set to 0 -> shoud not be cached
+            return
         item.updated()
         self._session.merge(item)
         self._session.commit()
 
     def _put_many(self, items:Iterable[DtoObject], cls):
         """Puts many items into the database. Updates lastUpdate column for each of them"""
+        if cls._dto_type in self._expirations and self._expirations[cls._dto_type] == 0:
+            # The expiration time has been set to 0 -> shoud not be cached
+            return
         for item in items:
             i = cls(**item)
             i.updated()
