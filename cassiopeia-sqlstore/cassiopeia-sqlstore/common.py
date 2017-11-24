@@ -11,7 +11,7 @@ class SQLBaseObject(object):
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             if hasattr(self, "_relationships") and key in self._relationships:
-                #Create a new Object for that relation
+                #Create a new Object for that relation, so sqlalchemy knows how to handle it
                 clazz = self._relationships[key][0]
                 if type(value) is list:
                     setattr(self, key, [clazz(**v) for v in value])
@@ -24,6 +24,7 @@ class SQLBaseObject(object):
         map = {}
         for column in self._table.columns:
             map[column.name] = getattr(self, column.name)
+        # Go over relationships and convert them to a dto recursivly
         if hasattr(self, "_relationships"):
             for rel in self._relationships:
                 value = getattr(self, rel)
@@ -74,6 +75,7 @@ class SQLBaseObject(object):
 sql_classes = set()
 
 def map_object(cls):
+    # Add cls to set so they can be called to expire later on
     sql_classes.add(cls)
     properties = cls._create_properties()
     if not properties:

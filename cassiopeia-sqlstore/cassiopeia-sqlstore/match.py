@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean,  ForeignKeyConstraint, Numeric
+from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKeyConstraint, Numeric
 
 from cassiopeia.dto.match import MatchDto
 from cassiopeia.dto.common import DtoObject
