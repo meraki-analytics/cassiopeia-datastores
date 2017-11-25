@@ -2,7 +2,7 @@ import os
 import pickle
 import datetime
 from abc import abstractmethod
-from typing import Mapping, Any, TypeVar, Iterable, Type
+from typing import Mapping, Any, TypeVar, Iterable, Type, Dict, List
 import simplekv, simplekv.fs
 
 from datapipelines import DataSource, DataSink, PipelineContext, NotFoundError
@@ -11,59 +11,19 @@ from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.champion import ChampionDto as ChampionStatusDto, ChampionListDto as ChampionStatusListDto
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
 from cassiopeia.dto.league import LeaguePositionsDto, LeagueListDto, MasterLeagueListDto, ChallengerLeagueListDto
-from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, MasteryDto, MasteryListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
+from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
 from cassiopeia.dto.match import MatchDto, TimelineDto
-from cassiopeia.dto.masterypage import MasteryPageDto, MasteryPagesDto
-from cassiopeia.dto.runepage import RunePageDto, RunePagesDto
 from cassiopeia.dto.summoner import SummonerDto
 from cassiopeia.dto.status import ShardStatusDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
+from cassiopeia.dto.patch import PatchListDto
 
 T = TypeVar("T")
 
 
-default_expirations = {
-    RealmDto: datetime.timedelta(hours=6),
-    VersionListDto: datetime.timedelta(hours=6),
-    ChampionDto: -1,
-    ChampionListDto: -1,
-    MasteryDto: -1,
-    MasteryListDto: -1,
-    RuneDto: -1,
-    RuneListDto: -1,
-    ItemDto: -1,
-    ItemListDto: -1,
-    SummonerSpellDto: -1,
-    SummonerSpellListDto: -1,
-    MapDto: -1,
-    MapListDto: -1,
-    ProfileIconDetailsDto: -1,
-    ProfileIconDataDto: -1,
-    LanguagesDto: -1,
-    LanguageStringsDto: -1,
-    ChampionStatusDto: datetime.timedelta(days=1),
-    ChampionStatusListDto: datetime.timedelta(days=1),
-    ChampionMasteryDto: datetime.timedelta(days=7),
-    ChampionMasteryListDto: datetime.timedelta(days=7),
-    LeaguePositionsDto: datetime.timedelta(hours=6),
-    LeagueListDto: datetime.timedelta(hours=6),
-    ChallengerLeagueListDto: datetime.timedelta(hours=6),
-    MasterLeagueListDto: datetime.timedelta(hours=6),
-    MatchDto: -1,
-    TimelineDto: -1,
-    MasteryPageDto: datetime.timedelta(days=1),
-    MasteryPagesDto: datetime.timedelta(days=1),
-    RunePageDto: datetime.timedelta(days=1),
-    RunePagesDto: datetime.timedelta(days=1),
-    SummonerDto: datetime.timedelta(days=1),
-    ShardStatusDto: datetime.timedelta(hours=1),
-    CurrentGameInfoDto: datetime.timedelta(hours=0.5),
-    FeaturedGamesDto: datetime.timedelta(hours=0.5),
-}
-
-
 class SimpleKVDiskService(DataSource, DataSink):
-    def __init__(self, path: str = None, expirations: Mapping[type, float] = None):
+    def __init__(self, path: str = None, expirations: Mapping[type, float] = None, plugins: List[str] = None):
+        self._plugins = plugins or []
         if path is None:
             import tempfile
             path = tempfile.gettempdir()
@@ -71,7 +31,7 @@ class SimpleKVDiskService(DataSource, DataSink):
         if not os.path.exists(path):
             os.mkdir(path)
         self._store = simplekv.fs.FilesystemStore(path)
-        self._expirations = dict(expirations) if expirations is not None else default_expirations
+        self._expirations = dict(expirations) if expirations is not None else self._default_expirations
         for key, value in self._expirations.items():
             if isinstance(key, str):
                 new_key = globals()[key]
@@ -81,6 +41,46 @@ class SimpleKVDiskService(DataSource, DataSink):
                 self._expirations[key] = simplekv.FOREVER
             elif isinstance(value, datetime.timedelta):
                 self._expirations[key] = value.seconds + 24 * 60 * 60 * value.days
+
+    @property
+    def _default_expirations(self) -> Dict:
+        expirations = {
+            RealmDto: datetime.timedelta(hours=6),
+            VersionListDto: datetime.timedelta(hours=6),
+            ChampionDto: -1,
+            ChampionListDto: -1,
+            RuneDto: -1,
+            RuneListDto: -1,
+            ItemDto: -1,
+            ItemListDto: -1,
+            SummonerSpellDto: -1,
+            SummonerSpellListDto: -1,
+            MapDto: -1,
+            MapListDto: -1,
+            ProfileIconDetailsDto: -1,
+            ProfileIconDataDto: -1,
+            LanguagesDto: -1,
+            LanguageStringsDto: -1,
+            ChampionStatusDto: datetime.timedelta(days=1),
+            ChampionStatusListDto: datetime.timedelta(days=1),
+            ChampionMasteryDto: datetime.timedelta(days=7),
+            ChampionMasteryListDto: datetime.timedelta(days=7),
+            LeaguePositionsDto: datetime.timedelta(hours=6),
+            LeagueListDto: datetime.timedelta(hours=6),
+            ChallengerLeagueListDto: datetime.timedelta(hours=6),
+            MasterLeagueListDto: datetime.timedelta(hours=6),
+            MatchDto: -1,
+            TimelineDto: -1,
+            SummonerDto: datetime.timedelta(days=1),
+            ShardStatusDto: datetime.timedelta(hours=1),
+            CurrentGameInfoDto: datetime.timedelta(hours=0.5),
+            FeaturedGamesDto: datetime.timedelta(hours=0.5),
+            PatchListDto: datetime.timedelta(days=1)
+        }
+        if "ChampionGG" in self._plugins:
+            from cassiopeia_championgg.dto import ChampionGGListDto
+            expirations[ChampionGGListDto] = datetime.timedelta(days=1)
+        return expirations
 
     @abstractmethod
     def get(self, type: Type[T], query: Mapping[str, Any], context: PipelineContext = None) -> T:
@@ -110,7 +110,7 @@ class SimpleKVDiskService(DataSource, DataSink):
         return data
 
     def _put(self, key: str, item: DtoObject):
-        expire_seconds = self._expirations.get(item.__class__, default_expirations[item.__class__])
+        expire_seconds = self._expirations.get(item.__class__, self._default_expirations[item.__class__])
 
         if expire_seconds != 0 and key not in self._store:
             item = (item, expire_seconds, datetime.datetime.now().timestamp())

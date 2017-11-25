@@ -1,4 +1,4 @@
-from typing import TypeVar, Type, Set, Iterable, Mapping
+from typing import TypeVar, Type, Set, Iterable, Mapping, List
 
 from datapipelines import CompositeDataSource, CompositeDataSink
 
@@ -7,38 +7,41 @@ from .common import SimpleKVDiskService
 T = TypeVar("T")
 
 
-def _default_services(path: str = None, expirations: Mapping[type, float] = None) -> Set[SimpleKVDiskService]:
+def _default_services(path: str = None, expirations: Mapping[type, float] = None, plugins: List[str] = None) -> Set[SimpleKVDiskService]:
+    if plugins is None:
+        plugins = []
     from .staticdata import StaticDataDiskService
     from .champion import ChampionDiskService
     from .summoner import SummonerDiskService
     from .championmastery import ChampionMasteryDiskService
-    from .runepage import RunePagesDiskService
-    from .masterypage import MasteryPagesDiskService
     from .match import MatchDiskService
     from .spectator import SpectatorDiskService
     from .status import ShardStatusDiskService
     from .leagues import LeaguesDiskService
+    from .patch import PatchDiskService
 
     services = {
-        StaticDataDiskService(path, expirations=expirations),
-        ChampionDiskService(path, expirations=expirations),
-        SummonerDiskService(path, expirations=expirations),
-        ChampionMasteryDiskService(path, expirations=expirations),
-        RunePagesDiskService(path, expirations=expirations),
-        MasteryPagesDiskService(path, expirations=expirations),
-        MatchDiskService(path, expirations=expirations),
-        SpectatorDiskService(path, expirations=expirations),
-        ShardStatusDiskService(path, expirations=expirations),
-        LeaguesDiskService(path, expirations=expirations)
+        StaticDataDiskService(path, expirations=expirations, plugins=plugins),
+        ChampionDiskService(path, expirations=expirations, plugins=plugins),
+        SummonerDiskService(path, expirations=expirations, plugins=plugins),
+        ChampionMasteryDiskService(path, expirations=expirations, plugins=plugins),
+        MatchDiskService(path, expirations=expirations, plugins=plugins),
+        SpectatorDiskService(path, expirations=expirations, plugins=plugins),
+        ShardStatusDiskService(path, expirations=expirations, plugins=plugins),
+        LeaguesDiskService(path, expirations=expirations, plugins=plugins),
+        PatchDiskService(path, expirations=expirations, plugins=plugins)
     }
+    if "ChampionGG" in plugins:
+        from .championgg import ChampionGGDiskService
+        services.add(ChampionGGDiskService(path, expirations=expirations, plugins=plugins))
 
     return services
 
 
 class SimpleKVDiskStore(CompositeDataSource, CompositeDataSink):
-    def __init__(self, path: str = None, expirations: Mapping[type, float] = None, services: Iterable[SimpleKVDiskService] = None):
+    def __init__(self, path: str = None, expirations: Mapping[type, float] = None, services: Iterable[SimpleKVDiskService] = None, plugins: List[str] = None):
         if services is None:
-            services = _default_services(path, expirations)
+            services = _default_services(path=path, expirations=expirations, plugins=plugins)
 
         CompositeDataSource.__init__(self, services)
         CompositeDataSink.__init__(self, services)
