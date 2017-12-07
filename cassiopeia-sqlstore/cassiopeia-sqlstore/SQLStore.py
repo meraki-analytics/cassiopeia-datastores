@@ -112,7 +112,7 @@ class SQLStore(DataSource, DataSink):
                 self._session.delete(result)
                 self._session.commit()
                 raise NotFoundError
-            return value
+            return result
 
     def _all(self, query):
         """Gets all rows of the query. Raises a NotFoundError if there are 0 rows"""
