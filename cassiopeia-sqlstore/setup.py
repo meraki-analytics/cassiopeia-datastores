@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     "cassiopeia",
-    "datapipelines>=1.0.3",
+    "datapipelines>=1.0.5",
     "simplekv"
 ]
 
