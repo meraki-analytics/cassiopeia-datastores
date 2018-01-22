@@ -1,5 +1,5 @@
 import copy
-import datetime
+import datetime, traceback
 
 from typing import Type, TypeVar, Mapping, MutableMapping, Any, Iterable
 from sqlalchemy import *
@@ -23,7 +23,7 @@ from cassiopeia.dto.status import ShardStatusDto
 
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 
-from .common import metadata, SQLBaseObject, sql_classes
+from .common import metadata, SQLBaseObject, sql_classes, SQLConstant
 from .summoner import SQLSummoner
 from .match import SQLMatch
 from .timeline import SQLTimeline
@@ -56,6 +56,7 @@ default_expirations = {
 
 class SQLStore(DataSource, DataSink):
     def __init__(self, connection_string, debug=False, expirations:Mapping[type, float] = None) -> None:
+        print("Testing")
         self._expirations = dict(expirations) if expirations is not None else default_expirations
         for key, value in self._expirations.items():
             if isinstance(key, str):
@@ -71,6 +72,7 @@ class SQLStore(DataSource, DataSink):
         metadata.create_all()
         self._session_factory = sessionmaker(bind=self._engine)
         self._session = scoped_session(self._session_factory)
+        SQLConstant._session = self._session
 
     def expire(self, type: Any=None):
         for cls in sql_classes:
@@ -222,7 +224,11 @@ class SQLStore(DataSource, DataSink):
 
     @put.register(MatchDto)
     def put_match(self, item:MatchDto, context: PipelineContext = None) -> None:
-        self._put(SQLMatch(**item))
+        try:
+            self._put(SQLMatch(**item))
+        except Exception:
+            print("EXCEPTION")
+            print(traceback.format_exc())
 
     # Timeline
 

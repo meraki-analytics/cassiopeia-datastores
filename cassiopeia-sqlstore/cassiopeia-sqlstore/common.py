@@ -1,10 +1,10 @@
-import datetime
+import datetime, threading
 
 from abc import abstractmethod
 from typing import Mapping
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey
 from sqlalchemy.orm import mapper, relationship
-
+from cassiopeia.dto.common import DtoObject
 metadata = MetaData()
 
 class SQLBaseObject(object):
@@ -17,6 +17,9 @@ class SQLBaseObject(object):
                     setattr(self, key, [clazz(**v) for v in value])
                 else:
                     setattr(self, key, clazz(**value))
+            elif hasattr(self, "_constants") and key in self._constants:
+                # Create constant object for sqlalchemy
+                setattr(self, key, SQLConstant.create(value))
             else:
                 setattr(self, key, value)
 
@@ -34,6 +37,15 @@ class SQLBaseObject(object):
                     map[rel] = value.to_dto()
                 else:
                     map[rel] = value
+        if hasattr(self, "_constants"):
+            for constant in self._constants:
+                value = getattr(self, constant)
+                if value:
+                    map[constant] = value.to_dto()
+                    del map[constant + "Id"]
+                else:
+                    map[constant] = None
+                    del map[constant + "Id"]
         return self._dto_type(map)
 
     def has_expired(self, expirations: Mapping[type, float]) -> bool:
@@ -53,7 +65,13 @@ class SQLBaseObject(object):
         prop = {}
         if hasattr(cls, '_relationships'):
             for key, value in cls._relationships.items():
-                prop[key] = relationship(value[0],lazy="joined", cascade="all, delete-orphan",**value[1])
+                prop[key] = relationship(value[0], lazy="joined", cascade="all, delete-orphan",**value[1])
+        if hasattr(cls, '_constants'):
+            for key in cls._constants:
+                column_name = key + "Id"
+                if not column_name in cls._table.c:
+                    cls._table.append_column(Column(column_name, Integer, ForeignKey("constant.id")))
+                prop[key] = relationship(SQLConstant, lazy="joined", cascade="all", foreign_keys=[cls._table.c[column_name]])                                
         return prop
 
     @classmethod
@@ -82,3 +100,53 @@ def map_object(cls):
         mapper(cls,cls._table)
     else:
         mapper(cls,cls._table,properties=properties)
+
+class ConstantDto(DtoObject):
+    pass
+
+class SQLConstant(SQLBaseObject):
+    # This session is used to make get_or_create() possible
+    # It will be set by the SQLStore on creation
+    _session = None
+    _lock = threading.Lock()
+    _cache = {}
+    _dto_type = ConstantDto
+    _table = Table("constant", metadata,
+                    Column("id", Integer, primary_key=True, autoincrement=True),
+                    Column("value", String(30), unique=True))
+
+    @classmethod
+    def create(cls, value):
+        with cls._lock:
+            if value in cls._cache:
+                return cls(value, cls._cache[value])
+            session = cls._session()
+            try:
+                instance = session.query(cls).filter_by(value=value).first()
+                if instance:
+                    cls._cache[value] = instance
+                    print("Found constant",instance.to_dto())
+                    return instance
+                else:
+                    instance = cls(value)
+                    session.add(instance)
+                    session.commit()
+                    cls._cache[value] = instance.id
+                    print("Created constant", instance.to_dto())
+                    return instance
+            except Exception as e:
+                print(e)
+                session.rollback()
+                return None            
+            finally:
+                print("Session closed")
+                session.close()
+
+    def __init__(self, constant, id=None):
+        setattr(self, "value", constant)
+        setattr(self, "id", id)
+
+    def to_dto(self):
+       return getattr(self,"value")
+
+map_object(SQLConstant)
