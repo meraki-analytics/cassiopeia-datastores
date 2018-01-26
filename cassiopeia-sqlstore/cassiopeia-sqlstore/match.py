@@ -15,7 +15,7 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("match_participant_participantId", Integer, primary_key=True),
                     # The column needs to be defined explicitly because it is a primary key
-                    Column("typeId", Integer, ForeignKey("constant.id"), primary_key=True),
+                    Column("type", String(30), primary_key=True),
                     Column("0-10", Numeric),
                     Column("10-20", Numeric),
                     Column("20-30", Numeric),
@@ -23,7 +23,7 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant_timeline.match_platformId","match_participant_timeline.match_gameId","match_participant_timeline.match_participant_participantId"]))
-    _constants = ["type"]
+    #_constants = ["type"]
 map_object(SQLMatchParticipantTimelineDeltas)
 
 class MatchParticipantTimelineDto(DtoObject):
@@ -266,11 +266,22 @@ class SQLMatchTeam(SQLBaseObject):
                     Column("inhibitorKills", Integer),
                     Column("towerKills", Integer),
                     Column("dragonKills", Integer),
-                    Column("win", String(5)),
+                    Column("win", Boolean),
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId"],
                         ["match.platformId","match.gameId"]))
     _relationships = {"bans":(SQLMatchBan, {})}
+    def __init__(self, **dwargs):
+        dwargs["win"] = dwargs["win"] == "Win"
+        super().__init__(**dwargs)
+
+    def to_dto(self):
+        dto = super().to_dto()
+        if dto["win"]:
+            dto["win"] = "Win"
+        else:
+            dto["win"] = "Fail"
+        return dto
 
 map_object(SQLMatchTeam)
 
@@ -292,5 +303,6 @@ class SQLMatch(SQLBaseObject):
                         "participantIdentities":(SQLMatchParticipantsIdentities,{})
                     }
     _constants = ["gameType", "gameMode"]
+
 
 map_object(SQLMatch)

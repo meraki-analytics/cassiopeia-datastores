@@ -1,9 +1,9 @@
-import datetime, threading
+import datetime, threading, time
 
 from abc import abstractmethod
 from typing import Mapping
 from sqlalchemy import MetaData, Table, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import mapper, relationship
+from sqlalchemy.orm import mapper, relationship, reconstructor
 from cassiopeia.dto.common import DtoObject
 metadata = MetaData()
 
@@ -19,10 +19,15 @@ class SQLBaseObject(object):
                     setattr(self, key, clazz(**value))
             elif hasattr(self, "_constants") and key in self._constants:
                 # Create constant object for sqlalchemy
-                setattr(self, key, SQLConstant.create(value))
+                setattr(self, key + "Id", Constant.create(value).id)
             else:
                 setattr(self, key, value)
-
+    @reconstructor
+    def init_on_load(self):       
+        if hasattr(self, "_constants"):
+            for constant in self._constants:
+                setattr(self, constant, Constant.create(None, getattr(self, constant + "Id")).value)       
+ 
     def to_dto(self):
         map = {}
         for column in self._table.columns:
@@ -41,7 +46,7 @@ class SQLBaseObject(object):
             for constant in self._constants:
                 value = getattr(self, constant)
                 if value:
-                    map[constant] = value.to_dto()
+                    map[constant] = value
                     del map[constant + "Id"]
                 else:
                     map[constant] = None
@@ -65,13 +70,12 @@ class SQLBaseObject(object):
         prop = {}
         if hasattr(cls, '_relationships'):
             for key, value in cls._relationships.items():
-                prop[key] = relationship(value[0], lazy="joined", cascade="all, delete-orphan",**value[1])
+                prop[key] = relationship(value[0], lazy="selectin", cascade="all, delete-orphan",**value[1])
         if hasattr(cls, '_constants'):
             for key in cls._constants:
                 column_name = key + "Id"
                 if not column_name in cls._table.c:
-                    cls._table.append_column(Column(column_name, Integer, ForeignKey("constant.id")))
-                prop[key] = relationship(SQLConstant, lazy="joined", cascade="all", foreign_keys=[cls._table.c[column_name]])                                
+                    cls._table.append_column(Column(column_name, Integer))                             
         return prop
 
     @classmethod
@@ -104,43 +108,53 @@ def map_object(cls):
 class ConstantDto(DtoObject):
     pass
 
+class Constant():
+    _session = None
+    _lock = threading.Lock()
+    _cache_by_value = {}
+    _cache_by_id = {}
+    @classmethod
+    def create(cls,value=None,id=None):
+        if value == "" and not id:
+            raise ValueError("Either value or id must be provided")
+        elif value and id:
+            return cls(value, id)
+        elif value:
+            if value in cls._cache_by_value:
+                return cls(value, cls._cache_by_value[value])
+            else:
+                session = cls._session()
+                const = session.query(SQLConstant).filter_by(value=value).first()
+                if not const:
+                    const = SQLConstant(value)
+                    session.add(const)
+                    session.commit()
+                cls._cache_by_value[value] = const.id
+                cls._cache_by_id[const.id] = value
+                return cls(const.value, const.id)
+        elif id:
+            if id in cls._cache_by_id:
+                return cls(cls._cache_by_id[id], id)
+            else:
+                session = cls._session()
+                const = session.query(SQLConstant).filter_by(id=id).first()
+                cls._cache_by_value[const.value] = const.id
+                cls._cache_by_id[const.id] = const.value
+                return cls(const.value, const.id)
+    def __init__(self, value, id):
+        self.value = value
+        self.id = id
+
+    def to_dto(self):
+        return self.value
+
 class SQLConstant(SQLBaseObject):
     # This session is used to make get_or_create() possible
     # It will be set by the SQLStore on creation
-    _session = None
-    _lock = threading.Lock()
-    _cache = {}
     _dto_type = ConstantDto
     _table = Table("constant", metadata,
                     Column("id", Integer, primary_key=True, autoincrement=True),
                     Column("value", String(30), unique=True))
-
-    @classmethod
-    def create(cls, value):
-        with cls._lock:
-            if value in cls._cache:
-                return cls(value, cls._cache[value])
-            session = cls._session()
-            try:
-                instance = session.query(cls).filter_by(value=value).first()
-                if instance:
-                    cls._cache[value] = instance
-                    print("Found constant",instance.to_dto())
-                    return instance
-                else:
-                    instance = cls(value)
-                    session.add(instance)
-                    session.commit()
-                    cls._cache[value] = instance.id
-                    print("Created constant", instance.to_dto())
-                    return instance
-            except Exception as e:
-                print(e)
-                session.rollback()
-                return None            
-            finally:
-                print("Session closed")
-                session.close()
 
     def __init__(self, constant, id=None):
         setattr(self, "value", constant)
