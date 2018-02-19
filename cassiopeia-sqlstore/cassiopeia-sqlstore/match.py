@@ -15,7 +15,7 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("match_participant_participantId", Integer, primary_key=True),
                     # The column needs to be defined explicitly because it is a primary key
-                    Column("type", String(30), primary_key=True),
+                    Column("typeId", Integer, primary_key=True),
                     Column("0-10", Numeric),
                     Column("10-20", Numeric),
                     Column("20-30", Numeric),
@@ -23,7 +23,7 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant_timeline.match_platformId","match_participant_timeline.match_gameId","match_participant_timeline.match_participant_participantId"]))
-    #_constants = ["type"]
+    _constants = ["type"]
 map_object(SQLMatchParticipantTimelineDeltas)
 
 class MatchParticipantTimelineDto(DtoObject):
