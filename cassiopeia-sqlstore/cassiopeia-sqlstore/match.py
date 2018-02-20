@@ -299,7 +299,7 @@ class SQLMatch(SQLBaseObject):
                     Column("lastUpdate", BigInteger))
     _relationships = {
                         "teams": (SQLMatchTeam, {}),
-                        "participants":(SQLMatchParticipant,{}),
+                        "participants":(SQLMatchParticipant,{"lazy":"selectin"}),
                         "participantIdentities":(SQLMatchParticipantsIdentities,{})
                     }
     _constants = ["gameType", "gameMode"]

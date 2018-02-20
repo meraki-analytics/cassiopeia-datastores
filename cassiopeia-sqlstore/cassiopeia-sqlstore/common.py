@@ -58,7 +58,7 @@ class SQLBaseObject(object):
             expire_seconds = expirations.get(self._dto_type,-1)
             if expire_seconds > 0:
                 now = datetime.datetime.now().timestamp()
-                return now > self.lastUpdate + expire_seconds
+                return now > (self.lastUpdate if self.lastUpdate else 0) + expire_seconds
         return False
 
     def updated(self):
@@ -70,7 +70,9 @@ class SQLBaseObject(object):
         prop = {}
         if hasattr(cls, '_relationships'):
             for key, value in cls._relationships.items():
-                prop[key] = relationship(value[0], lazy="selectin", cascade="all, delete-orphan",**value[1])
+                if not "lazy" in value[1]:
+                    value[1]["lazy"] = "joined"
+                prop[key] = relationship(value[0], cascade="all, delete-orphan",**value[1])
         if hasattr(cls, '_constants'):
             for key in cls._constants:
                 column_name = key + "Id"
@@ -141,6 +143,9 @@ class Constant():
                 cls._cache_by_value[const.value] = const.id
                 cls._cache_by_id[const.id] = const.value
                 return cls(const.value, const.id)
+        else:
+            # The constant is None return it with id -1
+            return cls(value, -1)
     def __init__(self, value, id):
         self.value = value
         self.id = id
@@ -149,8 +154,6 @@ class Constant():
         return self.value
 
 class SQLConstant(SQLBaseObject):
-    # This session is used to make get_or_create() possible
-    # It will be set by the SQLStore on creation
     _dto_type = ConstantDto
     _table = Table("constant", metadata,
                     Column("id", Integer, primary_key=True, autoincrement=True),

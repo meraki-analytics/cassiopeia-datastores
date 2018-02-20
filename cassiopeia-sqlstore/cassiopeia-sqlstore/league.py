@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKeyConstraint, Numeric
-from sqlalchemy.orm import foreign, remote
+from sqlalchemy.orm import foreign, remote, backref
 
 from cassiopeia.dto.league import LeagueListDto, LeaguePositionDto, LeaguePositionsDto
 from cassiopeia.dto.common import DtoObject
@@ -75,15 +75,13 @@ map_object(SQLLeague)
 
 class SQLLeaguePositions(SQLBaseObject):
     _dto_type = LeaguePositionsDto
-    _table = Table("league_by_summoner", metadata,
+    _table = Table("league_positions", metadata,
                     Column("summonerId", Integer, primary_key=True),
                     Column("platformId", String(5), primary_key=True),
                     Column("lastUpdate", BigInteger))
-    _relationships = {"positions":(SQLLeaguePosition,
-                                    {"primaryjoin":
-                                        (remote(_table.c.summonerId)==foreign(SQLLeaguePosition.playerOrTeamId)) &
-                                        (remote(_table.c.platformId)==foreign(SQLLeaguePosition.platformId)),
-                                    })
-                    }
+    _relationships = {"positions":(SQLLeaguePosition,{"primaryjoin":
+                                         (remote(_table.c.summonerId)==foreign(SQLLeaguePosition.playerOrTeamId)) &
+                                         (remote(_table.c.platformId)==foreign(SQLLeaguePosition.platformId)),
+                                     })}
 
 map_object(SQLLeaguePositions)

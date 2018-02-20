@@ -1,5 +1,5 @@
 import copy
-import datetime, traceback
+import datetime, traceback, time
 
 from typing import Type, TypeVar, Mapping, MutableMapping, Any, Iterable
 from sqlalchemy import *
@@ -29,8 +29,8 @@ from .match import SQLMatch
 from .timeline import SQLTimeline
 from .champion import SQLChampionStatus
 from .championmastery import SQLChampionMastery
-from .spectator import SQLCurrentGameInfo
-from .league import SQLLeague, SQLLeaguePositions, SQLLeaguePosition
+from .spectator import SQLCurrentGameInfo, SQLCurrentGameParticipant
+from .league import SQLLeague, SQLLeaguePosition, SQLLeaguePositions
 from .status import SQLShardStatus
 
 T = TypeVar("T")
@@ -106,7 +106,7 @@ class SQLStore(DataSource, DataSink):
             finally:
                 session.close()
         return inner
-
+    
     def _one(self, query):
         """Gets one row from the query. Raises NotFoundError if there isn't a row or if there are multiple rows"""
         try:
@@ -129,12 +129,12 @@ class SQLStore(DataSource, DataSink):
 
     def _all(self, query):
         """Gets all rows of the query. Raises a NotFoundError if there are 0 rows"""
-        if query.count() > 0:
-            results = query.all()
+        if query.count() > 0:            
+            results = query.all()            
             for result in results:
                 if result.has_expired(self._expirations):
                     raise NotFoundError
-            return [value.to_dto() for value in results]
+            return results
         else:
             raise NotFoundError
 
@@ -155,9 +155,9 @@ class SQLStore(DataSource, DataSink):
             return
         session = self._session
         for item in items:
-            i = cls(**item)
-            i.updated()
-            session.merge(i)
+            item = cls(**item)
+            item.updated()
+            session.merge(item)
 
 
 
@@ -253,30 +253,6 @@ class SQLStore(DataSource, DataSink):
     # Champion Mastery Endpoint #
     #############################
 
-    # Champion Mastery
-
-    _validate_get_champion_mastery_query = Query. \
-        has("platform").as_(Platform).also. \
-        has("summoner.id").also. \
-        has("champion.id").as_(int)
-
-    @get.register(ChampionMasteryDto)
-    @validate_query(_validate_get_champion_mastery_query, convert_region_to_platform)
-    def get_champion_mastery(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionMasteryDto:
-        champions_query = copy.deepcopy(query)
-        champions_query.pop("champion.id")
-        champions = self.get_champion_mastery_list(query=champions_query, context=context)
-        def find_matching_attribute(list_of_dtos, attrname, attrvalue):
-            for dto in list_of_dtos:
-                if dto.get(attrname, None) == attrvalue:
-                    return dto
-
-        champion = find_matching_attribute(champions["masteries"], "championId", query["champion.id"])
-        if champion is None:
-            raise NotFoundError
-        return ChampionMasteryDto(champion)
-
-
     # Champion Mastery List
 
     _validate_get_champion_mastery_list_query = Query. \
@@ -293,7 +269,7 @@ class SQLStore(DataSource, DataSink):
         masteries = self._all(self._session().query(SQLChampionMastery) \
                                 .filter_by(platformId=platform) \
                                 .filter_by(summonerId=summoner))
-        return ChampionMasteryListDto({"region":region,"summonerId":summoner,"masteries":masteries})
+        return ChampionMasteryListDto({"region":region,"summonerId":summoner,"masteries":[mastery.to_dto for mastery in masteries]})
 
     @put.register(ChampionMasteryListDto)
     def put_champion_mastery_list(self, item: ChampionMasteryListDto, context: PipelineContext = None) -> None:
@@ -328,6 +304,7 @@ class SQLStore(DataSource, DataSink):
         else:
             champions = self._all(self._session().query(SQLChampionStatus) \
                                     .filter_by(platform=platform))
+        champions = [champ.to_dto() for champ in champions]
         for champ in champions:
             champ["region"] = region
         return ChampionListDto({"region":region, "freeToPlay":freeToPlay, "champions":champions})
@@ -337,7 +314,7 @@ class SQLStore(DataSource, DataSink):
         platform = Region(item["region"]).platform.value
         for champ in item["champions"]:
             champ["platform"] = platform
-        self._put_many(item["champion"], SQLChampionStatus)
+        self._put_many(item["champions"], SQLChampionStatus)
 
 
 
@@ -380,7 +357,7 @@ class SQLStore(DataSource, DataSink):
         games = self._all(self._session().query(SQLCurrentGameInfo) \
                                 .filter_by(platformId=platform) \
                                 .filter_by(featured=True))
-        return FeaturedGamesDto({"clientRefreshInterval": 300, "gameList":games, "region": query["platform"].region.value})
+        return FeaturedGamesDto({"clientRefreshInterval": 300, "gameList":[game.to_dto() for game in games], "region": query["platform"].region.value})
 
     @put.register(FeaturedGamesDto)
     def put_featured_games(self, item: FeaturedGamesDto, context: PipelineContext = None) -> None:
@@ -393,17 +370,6 @@ class SQLStore(DataSource, DataSink):
     # League Endpoint #
     ###################
 
-
-    @compiles(Insert)
-    def apppend_string(insert, compiler, **kw):
-        s = compiler.visit_insert(insert, **kw)
-        if 'apppend_string' in insert.kwargs:
-            return s + " " + insert.kwargs['append_string']
-        return s
-
-    @dbconnect
-    def _put_league(self, item, cls):
-        self._session().execute(cls._table.insert(append_string="ON DUPLICATE KEY UPDATE name=name, tier=tier, queue=queue, lastUpdate=lastUpdate"), item)
 
     # League list by league id
 
@@ -422,10 +388,36 @@ class SQLStore(DataSource, DataSink):
         return league.to_dto()
 
     @put.register(LeagueListDto)
+    @dbconnect
     def put_league_list(self, item: LeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
-        self._put(SQLLeaguePositions.from_league(item))
+        print("putting")
+        league = self._session().query(SQLLeague) \
+                    .filter_by(platformId=platform) \
+                    .filter_by(leagueId=item["leagueId"]).first()
+        if not league:
+            # League isn't present yet. Just insert it
+            self._put(SQLLeague(**item))
+            return
+        
+        map_by_id = {int(value["playerOrTeamId"]):{**value,"playerOrTeamId":int(value["playerOrTeamId"])} for value in item["entries"]}
+        to_be_removed = list()
+        for entry in league.entries:
+            if entry.playerOrTeamId in map_by_id:                
+                entry.__init__(**map_by_id[entry.playerOrTeamId])
+                del map_by_id[entry.playerOrTeamId]
+            else:
+                to_be_removed.append[entry]
+        print(len(to_be_removed))
+        for entry in to_be_removed: league.entries.remove(entry)
+        print(len(league.entries))
+        for key, value in map_by_id.items():
+            league.entries.append(SQLLeaguePosition(**value))
+        print(len(league.entries))
+        league.updated()        
+        print(vars(league))
+        self._session().merge(league)
 
 
     # Challenger League
@@ -446,7 +438,7 @@ class SQLStore(DataSource, DataSink):
                                 .filter_by(tier=Tier.challenger.value))
         return ChallengerLeagueListDto(**league.to_dto())
 
-    @put.register(ChallengerLeagueListDto)
+    #@put.register(ChallengerLeagueListDto)
     def put_challenger_league(self, item: ChallengerLeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
@@ -471,7 +463,7 @@ class SQLStore(DataSource, DataSink):
                                 .filter_by(tier=Tier.master.value))
         return MasterLeagueListDto(**league.to_dto())
 
-    @put.register(MasterLeagueListDto)
+    #@put.register(MasterLeagueListDto)
     def put_master_league(self, item: MasterLeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
@@ -504,13 +496,44 @@ class SQLStore(DataSource, DataSink):
                                     .filter_by(summonerId=summonerId))
         dto = positions.to_dto()
         dto["region"] = Platform(dto["platformId"]).region.value
+        print(dto)
         return dto
 
+    @dbconnect
     @put.register(LeaguePositionsDto)
     def put_league_positions(self, item: LeaguePositionsDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
-        self._put(SQLLeaguePositions.from_summoner(item))
+        print("getting positions")        
+        old_positions = []
+        try:
+            old_positions = self._all(self._session().query(SQLLeaguePosition) \
+                                    .filter_by(platformId=platform) \
+                                    .filter_by(playerOrTeamId=item["summonerId"]))
+        except:
+            pass       
+        for position in item["positions"]:
+            found = False            
+            for p in old_positions:
+                if (p.leagueId == position["leagueId"]):
+                    print("FOUND")
+                    p.__init__(**position)
+                    p.updated()
+                    self._session().merge(p)
+                    found = True
+                    break
+            if not found:
+                position["league"] = SQLLeague(
+                    leagueId= position["leagueId"],
+                    platformId= platform,
+                    name= position["leagueName"],
+                    tier= position["tier"],
+                    queue= position["queueType"]
+                )
+                pos = SQLLeaguePosition(**position)
+                pos.updated()
+                self._session().merge(pos)        
+        self._put(SQLLeaguePositions(summonerId=item["summonerId"],platformId=platform, positions=[]))
 
 
 
