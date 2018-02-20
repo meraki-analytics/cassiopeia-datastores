@@ -380,7 +380,7 @@ class SQLStore(DataSource, DataSink):
     @dbconnect
     @get.register(LeagueListDto)
     @validate_query(_validate_get_league_query, convert_region_to_platform)
-    def get_leagues(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeagueListDto:
+    def get_league_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeagueListDto:
         platform = query["platform"].value
         league = self._one(self._session().query(SQLLeague) \
                                 .filter_by(platformId=platform) \
@@ -392,7 +392,6 @@ class SQLStore(DataSource, DataSink):
     def put_league_list(self, item: LeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
-        print("putting")
         league = self._session().query(SQLLeague) \
                     .filter_by(platformId=platform) \
                     .filter_by(leagueId=item["leagueId"]).first()
@@ -408,15 +407,11 @@ class SQLStore(DataSource, DataSink):
                 entry.__init__(**map_by_id[entry.playerOrTeamId])
                 del map_by_id[entry.playerOrTeamId]
             else:
-                to_be_removed.append[entry]
-        print(len(to_be_removed))
+                to_be_removed.append(entry)
         for entry in to_be_removed: league.entries.remove(entry)
-        print(len(league.entries))
         for key, value in map_by_id.items():
             league.entries.append(SQLLeaguePosition(**value))
-        print(len(league.entries))
         league.updated()        
-        print(vars(league))
         self._session().merge(league)
 
 
@@ -471,16 +466,6 @@ class SQLStore(DataSource, DataSink):
 
 
     # League Positions by summoner
-    '''
-    Because a single League Position can be requested eiter by league or by summoner,
-    this part of the store needs to work a bit differently. The insertion into the
-    database happens one Position at a time, independetly from the Insertion of
-    the SQLLeaguePositions, which only handles the lastUpdate.
-    The extraction of the Data works with a custom JOIN statement which is defined
-    in cassiopeia-sqlstore/cassiopeia-sqlstore/league.py
-    '''
-
-
     _validate_get_league_positions_query = Query. \
         has("summoner.id").as_(int).also. \
         has("platform").as_(Platform)
@@ -496,15 +481,13 @@ class SQLStore(DataSource, DataSink):
                                     .filter_by(summonerId=summonerId))
         dto = positions.to_dto()
         dto["region"] = Platform(dto["platformId"]).region.value
-        print(dto)
         return dto
 
     @dbconnect
     @put.register(LeaguePositionsDto)
     def put_league_positions(self, item: LeaguePositionsDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
-        item["platformId"] = platform
-        print("getting positions")        
+        item["platformId"] = platform     
         old_positions = []
         try:
             old_positions = self._all(self._session().query(SQLLeaguePosition) \
@@ -516,7 +499,6 @@ class SQLStore(DataSource, DataSink):
             found = False            
             for p in old_positions:
                 if (p.leagueId == position["leagueId"]):
-                    print("FOUND")
                     p.__init__(**position)
                     p.updated()
                     self._session().merge(p)
