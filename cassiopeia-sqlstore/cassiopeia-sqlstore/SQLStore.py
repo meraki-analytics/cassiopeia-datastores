@@ -1,12 +1,9 @@
-import copy
-import datetime, traceback, time
+import datetime
 
 from typing import Type, TypeVar, Mapping, MutableMapping, Any, Iterable
-from sqlalchemy import *
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import Insert
 
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query,NotFoundError
 
@@ -482,32 +479,40 @@ class SQLStore(DataSource, DataSink):
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform     
         old_positions = []
-        try:
-            old_positions = self._all(self._session().query(SQLLeaguePosition) \
-                                    .filter_by(platformId=platform) \
-                                    .filter_by(playerOrTeamId=item["summonerId"]))
-        except:
-            pass       
-        for position in item["positions"]:
-            found = False            
-            for p in old_positions:
-                if (p.leagueId == position["leagueId"]):
-                    p.__init__(**position)
-                    p.updated()
-                    self._session().merge(p)
-                    found = True
-                    break
-            if not found:
-                position["league"] = SQLLeague(
-                    leagueId= position["leagueId"],
-                    platformId= platform,
-                    name= position["leagueName"],
-                    tier= position["tier"],
-                    queue= position["queueType"]
-                )
-                pos = SQLLeaguePosition(**position)
-                pos.updated()
-                self._session().merge(pos)        
+        query = self._session().query(SQLLeaguePosition) \
+                    .filter_by(platformId=platform) \
+                    .filter_by(playerOrTeamId=item["summonerId"])
+        if query.count() > 0:
+            # There are already positions stored for that summoner
+            old_positions = query.all()
+
+        map_by_id = {position["leagueId"]:position for position in item["positions"]}
+
+        for i in range(len(old_positions)):
+            if old_positions[i].leagueId in map_by_id:
+                # The given position is already present. update it
+                old_positions[i].__init__(**map_by_id[old_positions[i].leagueId])
+                # Remove from map to prevent inserting it twice later on
+                del map_by_id[old_positions[i].leagueId]
+                self._session().merge(old_positions[i])
+            else:
+                # The given position is no longer present. remove it
+                old_positions[i].delete()
+
+        for pos in map_by_id.values():
+            # Create league, so it does get created in the database if it doesn't exist
+            league = SQLLeague(
+                platformId = platform,
+                leagueId   = pos["leagueId"],
+                name       = pos["leagueName"],
+                tier       = pos["tier"],
+                queue      = pos["queueType"]
+            )
+            position = SQLLeaguePosition(**pos,league=league)
+            # This will not call SQlLeague.updated() to make sure we don't mess up the expiration of the hole league
+            position.updated()
+            self._session().merge(position)
+
         self._put(SQLLeaguePositions(summonerId=item["summonerId"],platformId=platform, positions=[]))
 
 
