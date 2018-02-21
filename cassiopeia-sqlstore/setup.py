@@ -6,7 +6,8 @@ from setuptools import setup, find_packages
 install_requires = [
     "cassiopeia",
     "datapipelines>=1.0.5",
-    "simplekv"
+    "simplekv",
+    "sqlalchemy",
 ]
 
 setup(
