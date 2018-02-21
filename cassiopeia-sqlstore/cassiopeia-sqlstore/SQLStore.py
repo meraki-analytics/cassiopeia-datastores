@@ -532,6 +532,16 @@ class SQLStore(DataSource, DataSink):
                                 .filter_by(slug=query["platform"].region.value.lower()))
         return status.to_dto()
 
+    @dbconnect
     @put.register(ShardStatusDto)
-    def put_status(self, item: ShardStatusDto, context: PipelineContext = None) -> None:
-        self._put(SQLShardStatus(**item))
+    def put_status(self, item: ShardStatusDto, context: PipelineContext = None) -> None:    
+        try:
+            # Try to get stored shard status to update it
+            shard = self._session().query(SQLShardStatus) \
+                        .filter_by(slug=item["slug"]).one()
+            shard.__init__(**item)
+            self._session().merge(shard)
+        except:
+            # No shard status stored. Just put a new one
+            self._put(SQLShardStatus(**item))
+            pass
