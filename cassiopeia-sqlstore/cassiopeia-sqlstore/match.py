@@ -197,18 +197,17 @@ class MatchParticipantsIdentitiesDto(DtoObject):
 class SQLMatchParticipantsIdentities(SQLBaseObject):
     _dto_type = MatchParticipantsIdentitiesDto
     _table = Table("match_participant_identities", metadata,
-                    Column("match_platformId", String(5), primary_key=True),
+                    Column("p_currentPlatformId", String(5), primary_key=True),
+                    Column("p_platformId", String(5)),
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("participantId", Integer, primary_key=True),
                     Column("p_accountId", Integer),
                     Column("p_summonerName", String),
-                    Column("p_summonerId", Integer),
-                    Column("p_currentPlatformId", String(5)),
+                    Column("p_summonerId", Integer),                    
                     Column("p_currentAccountId", Integer),
                     Column("p_profileIcon", Integer),
-                    Column("p_matchHistoryUri", String),
                     ForeignKeyConstraint(
-                        ["match_platformId","match_gameId"],
+                        ["p_currentPlatformId","match_gameId"],
                         ["match.platformId","match.gameId"]))
     def __init__(self, **kwargs):
         player = kwargs.pop("player")
@@ -224,6 +223,8 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                 newkey = key[2:]
                 player[newkey] = dto.pop(key)
         dto["player"] = player
+        # Create match history Uri
+        dto["player"]["matchHistoryUri"] = "/v1/stats/player_history/" + player["platformId"] + "/" + str(player["accountId"])
         return dto
 
 map_object(SQLMatchParticipantsIdentities)
