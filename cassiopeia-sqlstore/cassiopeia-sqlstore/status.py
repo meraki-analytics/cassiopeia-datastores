@@ -43,7 +43,7 @@ class SQlShardStatusIncidentUpdate(SQLBaseObject):
                         ["status_slug", "status_service_slug", "status_incident_id"],
                         ["status_incident.status_slug", "status_incident.status_service_slug", "status_incident.id"]
                     ))
-    _relationships = {"translations":(SQlShardStatusIncidentUpdateTranslation, {})}
+    _relationships = {"translations":(SQlShardStatusIncidentUpdateTranslation, {"backref":"incident"})}
 
 map_object(SQlShardStatusIncidentUpdate)
 
