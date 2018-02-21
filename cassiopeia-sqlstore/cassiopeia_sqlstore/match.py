@@ -1,9 +1,9 @@
-from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKeyConstraint, Numeric
+from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKey, ForeignKeyConstraint, Numeric
 
 from cassiopeia.dto.match import MatchDto
 from cassiopeia.dto.common import DtoObject
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, SQLConstant
 
 class MatchParticipantTimelineDeltasDto(DtoObject):
     pass
@@ -14,7 +14,8 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     Column("match_platformId", String(5), primary_key=True),
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("match_participant_participantId", Integer, primary_key=True),
-                    Column("type", String(30), primary_key=True),
+                    # The column needs to be defined explicitly because it is a primary key
+                    Column("typeId", Integer, primary_key=True),
                     Column("0-10", Numeric),
                     Column("10-20", Numeric),
                     Column("20-30", Numeric),
@@ -22,7 +23,7 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant_timeline.match_platformId","match_participant_timeline.match_gameId","match_participant_timeline.match_participant_participantId"]))
-
+    _constants = ["type"]
 map_object(SQLMatchParticipantTimelineDeltas)
 
 class MatchParticipantTimelineDto(DtoObject):
@@ -196,17 +197,17 @@ class MatchParticipantsIdentitiesDto(DtoObject):
 class SQLMatchParticipantsIdentities(SQLBaseObject):
     _dto_type = MatchParticipantsIdentitiesDto
     _table = Table("match_participant_identities", metadata,
-                    Column("match_platformId", String(5), primary_key=True),
+                    Column("p_currentPlatformId", String(5), primary_key=True),
+                    Column("p_platformId", String(5)),
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("participantId", Integer, primary_key=True),
                     Column("p_accountId", Integer),
                     Column("p_summonerName", String),
-                    Column("p_summonerId", Integer),
-                    Column("p_currentPlatformId", String(5)),
+                    Column("p_summonerId", Integer),                    
+                    Column("p_currentAccountId", Integer),
                     Column("p_profileIcon", Integer),
-                    Column("p_matchHistoryUri", String),
                     ForeignKeyConstraint(
-                        ["match_platformId","match_gameId"],
+                        ["p_currentPlatformId","match_gameId"],
                         ["match.platformId","match.gameId"]))
     def __init__(self, **kwargs):
         player = kwargs.pop("player")
@@ -222,6 +223,8 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                 newkey = key[2:]
                 player[newkey] = dto.pop(key)
         dto["player"] = player
+        # Create match history Uri
+        dto["player"]["matchHistoryUri"] = "/v1/stats/player_history/" + player["platformId"] + "/" + str(player["accountId"])
         return dto
 
 map_object(SQLMatchParticipantsIdentities)
@@ -264,11 +267,22 @@ class SQLMatchTeam(SQLBaseObject):
                     Column("inhibitorKills", Integer),
                     Column("towerKills", Integer),
                     Column("dragonKills", Integer),
-                    Column("win", String(5)),
+                    Column("win", Boolean),
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId"],
                         ["match.platformId","match.gameId"]))
     _relationships = {"bans":(SQLMatchBan, {})}
+    def __init__(self, **dwargs):
+        dwargs["win"] = dwargs["win"] == "Win"
+        super().__init__(**dwargs)
+
+    def to_dto(self):
+        dto = super().to_dto()
+        if dto["win"]:
+            dto["win"] = "Win"
+        else:
+            dto["win"] = "Fail"
+        return dto
 
 map_object(SQLMatchTeam)
 
@@ -280,16 +294,16 @@ class SQLMatch(SQLBaseObject):
                     Column("seasonId", Integer),
                     Column("queueId", Integer),
                     Column("gameVersion", String(23)),
-                    Column("gameMode", String(12)),
                     Column("mapId",Integer),
-                    Column("gameType", String(12)),
                     Column("gameDuration", Integer),
                     Column("gameCreation", BigInteger),
                     Column("lastUpdate", BigInteger))
     _relationships = {
                         "teams": (SQLMatchTeam, {}),
-                        "participants":(SQLMatchParticipant,{}),
+                        "participants":(SQLMatchParticipant,{"lazy":"selectin"}),
                         "participantIdentities":(SQLMatchParticipantsIdentities,{})
                     }
+    _constants = ["gameType", "gameMode"]
+
 
 map_object(SQLMatch)

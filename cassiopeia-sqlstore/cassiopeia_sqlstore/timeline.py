@@ -15,26 +15,16 @@ class SQLTimelineFrameEvent(SQLBaseObject):
                     Column("match_timeline_platformId", String(5), primary_key=True),
                     Column("match_timeline_frame_id", Integer, primary_key=True),
                     Column("id", Integer, primary_key=True),
-                    Column("type", String(30)),
                     Column("timestamp", Integer),
                     Column("participantId", Integer),
                     Column("itemId", Integer),
                     Column("skillSlot", Integer),
-                    Column("levelUpType", String(10)),
-                    Column("wardType", String(30)),
                     Column("creatorId", Integer),
-                    Column("eventType", String(30)),
-                    Column("towerType", String(30)),
                     Column("teamId", Integer),
-                    Column("ascendedType", String(15)),
                     Column("killerId", Integer),
                     Column("pointCaptured", String(20)),
-                    Column("monsterType", String(20)),
                     Column("victimId", Integer),
                     Column("afterId", Integer),
-                    Column("monsterSubType", String(20)),
-                    Column("laneType", String(30)),
-                    Column("buildingType", String(30)),
                     Column("beforeId", Integer),
                     Column("position_x", Integer),
                     Column("position_y", Integer),
@@ -43,6 +33,7 @@ class SQLTimelineFrameEvent(SQLBaseObject):
                         ["match_timeline_matchId", "match_timeline_platformId", "match_timeline_frame_id"],
                         ["match_timeline_frame.match_timeline_matchId", "match_timeline_frame.match_timeline_platformId", "match_timeline_frame.id"]
                     ))
+    _constants = ["type","wardType","levelUpType","eventType","towerType","monsterType","monsterSubType","buildingType"]
     def __init__(self, **kwargs):
         if "position" in kwargs:
             kwargs["position_x"] = kwargs["position"]["x"]
@@ -114,8 +105,8 @@ class SQLTimelineFrame(SQLBaseObject):
                         ["match_timeline.matchId", "match_timeline.platformId"]
                     ))
     _relationships = {
-                        "participantFrames":(SQlTimelineParticipantFrame,{}),
-                        "events": (SQLTimelineFrameEvent, {})
+                        "participantFrames":(SQlTimelineParticipantFrame,{"lazy":"selectin"}),
+                        "events": (SQLTimelineFrameEvent, {"lazy":"selectin"})
                     }
 
     def __init__(self, **kwargs):
@@ -138,7 +129,7 @@ class SQLTimeline(SQLBaseObject):
                     Column("platformId", String(5), primary_key=True),
                     Column("frameInterval", Integer),
                     Column("lastUpdate", BigInteger))
-    _relationships = {"frames":(SQLTimelineFrame,{})}
+    _relationships = {"frames":(SQLTimelineFrame,{"lazy":"selectin"})}
     def __init__(self, **kwargs):
         for i in range(0, len(kwargs["frames"])):
             kwargs["frames"][i]["id"] = i
