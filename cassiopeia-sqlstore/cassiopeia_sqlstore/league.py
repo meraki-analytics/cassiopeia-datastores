@@ -28,11 +28,9 @@ class SQLLeagueMiniSeries(SQLBaseObject):
 
 map_object(SQLLeagueMiniSeries)
 
-# Both division and tiers are sorted ascending to allow a easier computation of a total ranking
-# e.g. (tier*500) + (division*100) + leaguePoints will generate a value unique to every league point
-league_division = [Division.five.value, Division.four.value, Division.three.value, Division.two.value, Division.one.value]
-league_tiers = [Tier.bronze.value, Tier.silver.value, Tier.gold.value,
-                 Tier.platinum.value, Tier.diamond.value, Tier.master.value, Tier.challenger.value]
+league_division = [key.value for key in sorted(Division._order(), key=Division._order().get)]
+# Add unranked tier to match order of enum
+league_tiers = ["UNRANKED"] + [key.value for key in sorted(Tier._order(), key=Tier._order().get)]
 
 class SQLLeaguePosition(SQLBaseObject):
     _dto_type = LeaguePositionDto
@@ -81,7 +79,7 @@ class SQLLeague(SQLBaseObject):
                     Column("leagueId", String(36), primary_key=True),
                     Column("platformId", String(5), primary_key=True),
                     Column("name", String(30)),
-                    Column("tier", String(10)),
+                    Column("tier", Integer),
                     Column("lastUpdate", BigInteger))
     _relationships = {"entries":(SQLLeaguePosition,{"backref":"league"})}
     _constants = ["queue"]
