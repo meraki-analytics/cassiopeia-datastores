@@ -117,35 +117,36 @@ class Constant():
     _cache_by_id = {}
     @classmethod
     def create(cls,value=None,id=None):
-        if value == "" and not id:
-            raise ValueError("Either value or id must be provided")
-        elif value and id:
-            return cls(value, id)
-        elif value:
-            if value in cls._cache_by_value:
-                return cls(value, cls._cache_by_value[value])
+        with cls._lock:
+            if value == "" and not id:
+                raise ValueError("Either value or id must be provided")
+            elif value and id:
+                return cls(value, id)
+            elif value:
+                if value in cls._cache_by_value:
+                    return cls(value, cls._cache_by_value[value])
+                else:
+                    session = cls._session()
+                    const = session.query(SQLConstant).filter_by(value=value).first()
+                    if not const:
+                        const = SQLConstant(value)
+                        session.add(const)
+                        session.commit()
+                    cls._cache_by_value[value] = const.id
+                    cls._cache_by_id[const.id] = value
+                    return cls(const.value, const.id)
+            elif id:
+                if id in cls._cache_by_id:
+                    return cls(cls._cache_by_id[id], id)
+                else:
+                    session = cls._session()
+                    const = session.query(SQLConstant).filter_by(id=id).first()
+                    cls._cache_by_value[const.value] = const.id
+                    cls._cache_by_id[const.id] = const.value
+                    return cls(const.value, const.id)
             else:
-                session = cls._session()
-                const = session.query(SQLConstant).filter_by(value=value).first()
-                if not const:
-                    const = SQLConstant(value)
-                    session.add(const)
-                    session.commit()
-                cls._cache_by_value[value] = const.id
-                cls._cache_by_id[const.id] = value
-                return cls(const.value, const.id)
-        elif id:
-            if id in cls._cache_by_id:
-                return cls(cls._cache_by_id[id], id)
-            else:
-                session = cls._session()
-                const = session.query(SQLConstant).filter_by(id=id).first()
-                cls._cache_by_value[const.value] = const.id
-                cls._cache_by_id[const.id] = const.value
-                return cls(const.value, const.id)
-        else:
-            # The constant is None return it with id -1
-            return cls(value, -1)
+                # The constant is None return it with id -1
+                return cls(value, -1)
     def __init__(self, value, id):
         self.value = value
         self.id = id
