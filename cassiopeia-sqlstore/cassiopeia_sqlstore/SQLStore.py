@@ -430,11 +430,12 @@ class SQLStore(DataSource, DataSink):
     @validate_query(_validate_get_challenger_league_query, convert_region_to_platform)
     def get_challenger_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChallengerLeagueListDto:
         platform = query["platform"].value
-        queue = query["queue"].value
+        queue = Constant.create(query["queue"].value)
+        tier = Tier._order()[Tier.challenger]
         league = self._one(self._session().query(SQLLeague) \
                                 .filter_by(platformId=platform) \
-                                .filter_by(queue=queue) \
-                                .filter_by(tier=Tier.challenger.value))
+                                .filter_by(queueId=queue.id) \
+                                .filter_by(tier=tier))
         return ChallengerLeagueListDto(**league.to_dto())
 
     _validate_get_master_league_query = Query. \
@@ -446,11 +447,12 @@ class SQLStore(DataSource, DataSink):
     @validate_query(_validate_get_master_league_query, convert_region_to_platform)
     def get_master_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasterLeagueListDto:
         platform = query["platform"].value
-        queue = query["queue"].value
+        queue = Constant.create(query["queue"].value)
+        tier = Tier._order()[Tier.master]
         league = self._one(self._session().query(SQLLeague) \
                                 .filter_by(platformId=platform) \
-                                .filter_by(queue=queue) \
-                                .filter_by(tier=Tier.master.value))
+                                .filter_by(queueId=queue.id) \
+                                .filter_by(tier=tier))
         return MasterLeagueListDto(**league.to_dto())
 
 
