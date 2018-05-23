@@ -47,13 +47,22 @@ class SimpleKVDiskStore(CompositeDataSource, CompositeDataSink):
         CompositeDataSink.__init__(self, services)
 
     def clear(self, type: Type[T] = None):
-        sinks = {sink for many_sinks in self._sinks.values() for sink in many_sinks}
-        for sink in sinks:
-            for key in sink._store:
-                if type is None:
-                    sink._store.delete(key)
-                elif key.startswith("{}.".format(type.__name__)):
-                        sink._store.delete(key)
+        sinks = [sink for many_sinks in self._sinks.values() for sink in many_sinks]
+        store = sinks[0]._store
+        for key in store:
+            if type is None:
+                store.delete(key)
+            elif key.startswith(type.__name__):
+                store.delete(key)
 
     def delete(self, item: Type[T]):
         raise NotImplemented
+
+    def expire(self, type: Type[T] = None):
+        sinks = {sink for many_sinks in self._sinks.values() for sink in many_sinks}
+        store = sinks[0]._store
+        for key in store:
+            if type is None:
+                store.get(key)
+            elif key.startswith(type.__name__):
+                store.get(key)

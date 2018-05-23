@@ -9,6 +9,7 @@ from cassiopeia.dto.staticdata.item import ItemDto, ItemListDto
 from cassiopeia.dto.staticdata.summonerspell import SummonerSpellDto, SummonerSpellListDto
 from cassiopeia.dto.staticdata.version import VersionListDto
 from cassiopeia.dto.staticdata.map import MapDto, MapListDto
+from cassiopeia.dto.staticdata.rune import RuneDto, RuneListDto
 from cassiopeia.dto.staticdata.realm import RealmDto
 from cassiopeia.dto.staticdata.language import LanguagesDto, LanguageStringsDto
 from cassiopeia.dto.staticdata.profileicon import ProfileIconDataDto
@@ -447,3 +448,69 @@ class StaticDataDiskService(SimpleKVDiskService):
                                                                version=item["version"],
                                                                locale=item["locale"])
         self._put(key, item)
+
+    #########
+    # Runes #
+    #########
+
+    _validate_get_rune_query = Query. \
+        has("id").as_(int).or_("name").as_(str).also. \
+        has("platform").as_(Platform).also. \
+        can_have("version").with_default(_get_latest_version, supplies_type=str).also. \
+        can_have("locale").with_default(_get_default_locale, supplies_type=str).also. \
+        can_have("includedData").with_default({"all"})
+
+    @get.register(RuneDto)
+    @validate_query(_validate_get_rune_query, convert_region_to_platform)
+    def get_rune(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RuneDto:
+        runes_query = copy.deepcopy(query)
+        if "id" in runes_query:
+            runes_query.pop("id")
+        if "name" in runes_query:
+            runes_query.pop("name")
+        runes = context[context.Keys.PIPELINE].get(RuneListDto, query=runes_query)
+
+        def find_matching_attribute(list_of_dtos, attrname, attrvalue):
+            for dto in list_of_dtos:
+                if dto.get(attrname, None) == attrvalue:
+                    return dto
+
+        if "id" in query:
+            rune = find_matching_attribute(runes["data"].values(), "runeId", str(query["id"]))
+        elif "name" in query:
+            rune = find_matching_attribute(runes["data"].values(), "runeName", query["name"])
+        else:
+            raise ValueError("Impossible!")
+        if rune is None:
+            raise NotFoundError
+        rune["region"] = query["platform"].region.value
+        rune["version"] = query["version"]
+        rune["locale"] = query["locale"]
+        return RuneDto(rune)
+
+    _validate_get_rune_list_query = Query. \
+        has("platform").as_(Platform).also. \
+        can_have("version").with_default(_get_latest_version, supplies_type=str).also. \
+        can_have("locale").with_default(_get_default_locale, supplies_type=str)
+
+    @get.register(RuneListDto)
+    @validate_query(_validate_get_rune_list_query, convert_region_to_platform)
+    def get_rune_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> RuneListDto:
+        platform = query["platform"].value
+        version = query["version"]
+        locale = query["locale"]
+        key = "{clsname}.{platform}.{version}.{locale}".format(clsname=RuneListDto.__name__,
+                                                               platform=platform,
+                                                               version=version,
+                                                               locale=locale)
+        return RuneListDto(self._get(key))
+
+    @put.register(RuneListDto)
+    def put_rune_list(self, item: RuneListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"]).platform.value
+        key = "{clsname}.{platform}.{version}.{locale}".format(clsname=RuneListDto.__name__,
+                                                               platform=platform,
+                                                               version=item["version"],
+                                                               locale=item["locale"])
+        self._put(key, item)
+
