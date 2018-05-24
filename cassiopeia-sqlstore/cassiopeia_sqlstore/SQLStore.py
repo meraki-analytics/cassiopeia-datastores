@@ -52,7 +52,7 @@ default_expirations = {
 }
 
 class SQLStore(DataSource, DataSink):
-    def __init__(self, connection_string, debug=False, expirations:Mapping[type, float] = None) -> None:
+    def __init__(self, connection_string, debug=False, pool_size=10, max_overflow=20, expirations:Mapping[type, float] = None) -> None:
         self._expirations = dict(expirations) if expirations is not None else default_expirations
         for key, value in self._expirations.items():
             if isinstance(key, str):
@@ -61,9 +61,8 @@ class SQLStore(DataSource, DataSink):
                 key = new_key
             if isinstance(value, datetime.timedelta):
                 self._expirations[key] = value.seconds + 24 * 60 * 60 * value.days
-
         # Create database connection
-        self._engine = create_engine(connection_string, echo=debug)
+        self._engine = create_engine(connection_string, echo=debug, pool_size=pool_size, max_overflow=max_overflow)
         metadata.bind = self._engine
         metadata.create_all()
         self._session_factory = sessionmaker(bind=self._engine)
@@ -266,7 +265,7 @@ class SQLStore(DataSource, DataSink):
         masteries = self._all(self._session().query(SQLChampionMastery) \
                                 .filter_by(platformId=platform) \
                                 .filter_by(summonerId=summoner))
-        return ChampionMasteryListDto({"region":region,"summonerId":summoner,"masteries":[mastery.to_dto for mastery in masteries]})
+        return ChampionMasteryListDto({"region":region,"summonerId":summoner,"masteries":[mastery.to_dto() for mastery in masteries]})
 
     @put.register(ChampionMasteryListDto)
     def put_champion_mastery_list(self, item: ChampionMasteryListDto, context: PipelineContext = None) -> None:
