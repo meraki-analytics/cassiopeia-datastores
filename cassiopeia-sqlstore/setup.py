@@ -11,7 +11,7 @@ install_requires = [
 
 setup(
     name="cassiopeia-sqlstore",
-    version="1.0.1",
+    version="1.0.2",
     author="Jason Maldonis; Rob Rua; Anton Pohli",
     author_email="team@merakianalytics.com",
     url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/cassiopeia-sqlstore",
