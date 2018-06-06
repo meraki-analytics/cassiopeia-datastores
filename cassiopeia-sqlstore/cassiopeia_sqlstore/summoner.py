@@ -9,7 +9,7 @@ class SQLSummoner(SQLBaseObject):
     _table = Table('summoner', metadata,
                 Column('platform', String(length=5), primary_key=True),
                 Column('id', Integer, primary_key=True),
-                Column('accountId', Integer),
+                Column('accountId', BigInteger),
                 Column('name', String(length=30)),
                 Column('summonerLevel', Integer),
                 Column('profileIconId', Integer),

@@ -201,10 +201,10 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                     Column("p_platformId", String(5)),
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("participantId", Integer, primary_key=True),
-                    Column("p_accountId", Integer),
+                    Column("p_accountId", BigInteger),
                     Column("p_summonerName", String),
                     Column("p_summonerId", Integer),                    
-                    Column("p_currentAccountId", Integer),
+                    Column("p_currentAccountId", BigInteger),
                     Column("p_profileIcon", Integer),
                     ForeignKeyConstraint(
                         ["p_currentPlatformId","match_gameId"],
