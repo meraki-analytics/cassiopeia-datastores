@@ -1,5 +1,7 @@
 from sqlalchemy import Table, Column, Integer, String, BigInteger, Boolean, ForeignKey, ForeignKeyConstraint, Numeric
 
+from decimal import Decimal
+
 from cassiopeia.dto.match import MatchDto
 from cassiopeia.dto.common import DtoObject
 
@@ -16,14 +18,20 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     Column("match_participant_participantId", Integer, primary_key=True),
                     # The column needs to be defined explicitly because it is a primary key
                     Column("typeId", Integer, primary_key=True),
-                    Column("0-10", Numeric),
-                    Column("10-20", Numeric),
-                    Column("20-30", Numeric),
-                    Column("30-end", Numeric),
+                    Column("0-10", Numeric(precision=7, scale=3)),
+                    Column("10-20", Numeric(precision=7, scale=3)),
+                    Column("20-30", Numeric(precision=7, scale=3)),
+                    Column("30-end", Numeric(precision=7, scale=3)),
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant_timeline.match_platformId","match_participant_timeline.match_gameId","match_participant_timeline.match_participant_participantId"]))
     _constants = ["type"]
+    def to_dto(self):
+        dto = super().to_dto()
+        for key, value in dto.items():
+            if type(value) is Decimal:
+                dto[key] = float(value)
+        return dto
 map_object(SQLMatchParticipantTimelineDeltas)
 
 class MatchParticipantTimelineDto(DtoObject):
@@ -35,8 +43,8 @@ class SQLMatchParticipantTimeline(SQLBaseObject):
                     Column("match_platformId", String(5), primary_key=True),
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("match_participant_participantId", Integer, primary_key=True),
-                    Column("lane", String),
-                    Column("role", String),
+                    Column("lane", String(12)),
+                    Column("role", String(12)),
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant.match_platformId","match_participant.match_gameId","match_participant.participantId"]))
@@ -202,7 +210,7 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                     Column("match_gameId", BigInteger, primary_key=True),
                     Column("participantId", Integer, primary_key=True),
                     Column("p_accountId", BigInteger),
-                    Column("p_summonerName", String),
+                    Column("p_summonerName", String(30)),
                     Column("p_summonerId", Integer),                    
                     Column("p_currentAccountId", BigInteger),
                     Column("p_profileIcon", Integer),
