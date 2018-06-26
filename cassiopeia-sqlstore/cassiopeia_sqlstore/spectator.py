@@ -53,8 +53,8 @@ map_object(SQLCurrentGameBan)
 class SQLCurrentGameInfo(SQLBaseObject):
     _dto_type = CurrentGameInfoDto
     _table = Table("current_game", metadata,
-                    Column("gameId", BigInteger, primary_key=True),
                     Column("platformId", String(5), primary_key=True),
+                    Column("gameId", BigInteger, primary_key=True),                    
                     Column("gameStartTime", BigInteger),
                     Column("gameMode", String(10)),
                     Column("mapId",Integer),
