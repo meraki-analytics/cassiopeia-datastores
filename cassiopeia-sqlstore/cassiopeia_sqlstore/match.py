@@ -18,10 +18,10 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                     Column("match_participant_participantId", Integer, primary_key=True),
                     # The column needs to be defined explicitly because it is a primary key
                     Column("typeId", Integer, primary_key=True),
-                    Column("0-10", Numeric(precision=10, scale=4)),
-                    Column("10-20", Numeric(precision=10, scale=4)),
-                    Column("20-30", Numeric(precision=10, scale=4)),
-                    Column("30-end", Numeric(precision=10, scale=4)),
+                    Column("0-10", Numeric(precision=7, scale=3)),
+                    Column("10-20", Numeric(precision=7, scale=3)),
+                    Column("20-30", Numeric(precision=7, scale=3)),
+                    Column("30-end", Numeric(precision=7, scale=3)),
                     ForeignKeyConstraint(
                         ["match_platformId","match_gameId","match_participant_participantId"],
                         ["match_participant_timeline.match_platformId","match_participant_timeline.match_gameId","match_participant_timeline.match_participant_participantId"]))
