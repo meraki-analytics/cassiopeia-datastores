@@ -60,7 +60,7 @@ class SimpleKVDiskStore(CompositeDataSource, CompositeDataSink):
 
     def expire(self, type: Type[T] = None):
         sinks = {sink for many_sinks in self._sinks.values() for sink in many_sinks}
-        store = sinks[0]._store
+        store = next(iter(sinks))._store
         for key in store:
             if type is None:
                 store.get(key)
