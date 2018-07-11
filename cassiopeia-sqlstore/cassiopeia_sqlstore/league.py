@@ -3,7 +3,7 @@ from sqlalchemy.orm import foreign, remote, backref
 
 from cassiopeia.dto.league import LeagueListDto, LeaguePositionDto, LeaguePositionsDto
 from cassiopeia.dto.common import DtoObject
-from cassiopeia.data import Tier, Division
+from cassiopeia.data import Tier, Division, Platform
 
 
 from .common import metadata, SQLBaseObject, map_object
@@ -69,6 +69,10 @@ class SQLLeaguePosition(SQLBaseObject):
         dto["rank"] = league_division[int(dto["rank"])]
         if dto["miniSeries"] is None:
             dto.pop("miniSeries")
+        dto["region"] = Platform(self.league.platformId).region
+        dto["leagueName"] = self.league.name
+        dto["queueType"] = self.league.queue
+        dto["tier"] = league_tiers[self.league.tier]
         return dto
 
 map_object(SQLLeaguePosition)

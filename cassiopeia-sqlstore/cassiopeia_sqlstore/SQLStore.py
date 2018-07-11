@@ -313,7 +313,6 @@ class SQLStore(DataSource, DataSink):
         self._put_many(item["champions"], SQLChampionStatus)
 
 
-
     ######################
     # Spectator Endpoint #
     ######################
@@ -358,7 +357,6 @@ class SQLStore(DataSource, DataSink):
     def put_featured_games(self, item: FeaturedGamesDto, context: PipelineContext = None) -> None:
         for game in item["gameList"]:
             self._put(SQLCurrentGameInfo(featured=True, **game))
-
 
 
     ###################
