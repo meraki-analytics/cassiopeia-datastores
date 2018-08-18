@@ -129,11 +129,17 @@ class SimpleKVDiskService(DataSource, DataSink):
                     self._store.delete(key)
 
     def expire(self, type: Any = None):
-        if type is not None:
-            for key in self._store.keys():
-                self._get(key)
+        if type is None:
+            for key in self._store.iter_keys():
+                try:
+                    self._get(key)
+                except NotFoundError:
+                    continue
         else:
             typename = type.__name__
-            for key in self._store.keys():
+            for key in self._store.iter_keys():
                 if key.startswith(typename):
-                    self._get(key)
+                    try:
+                        self._get(key)
+                    except NotFoundError:
+                        continue
