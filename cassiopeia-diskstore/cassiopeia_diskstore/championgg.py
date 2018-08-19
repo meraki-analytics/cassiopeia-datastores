@@ -2,7 +2,7 @@ from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
-from cassiopeia_championgg.dto import ChampionGGListDto, ChampionGGDto
+from cassiopeia_championgg.dto import ChampionGGStatsListDto, ChampionGGStatsDto
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
@@ -29,31 +29,23 @@ class ChampionGGDiskService(SimpleKVDiskService):
 
     _validate_get_gg_champion_list_query = Query. \
         has("patch").as_(str).also. \
-        can_have("includedData").with_default(lambda *args, **kwargs: "kda,damage,minions,wards,overallPerformanceScore,goldEarned", supplies_type=str).also. \
-        can_have("elo").with_default(lambda *args, **kwargs: "PLATINUM_DIAMOND_MASTER_CHALLENGER", supplies_type=str).also. \
-        can_have("limit").with_default(lambda *args, **kwargs: 300, supplies_type=int)
+        can_have("elo").with_default(lambda *args, **kwargs: "PLATINUM_DIAMOND_MASTER_CHALLENGER", supplies_type=str)
 
-    @get.register(ChampionGGListDto)
+    @get.register(ChampionGGStatsListDto)
     @validate_query(_validate_get_gg_champion_list_query, convert_region_to_platform)
-    def get_champion_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionGGListDto:
+    def get_champion_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionGGStatsListDto:
         patch = query["patch"]
-        included_data = query["includedData"]
         elo = query["elo"]
-        limit = query["limit"]
-        key = "{clsname}.{patch}.{included_data}.{elo}.{limit}".format(clsname=ChampionGGListDto.__name__,
-                                                                       patch=patch,
-                                                                       included_data=included_data,
-                                                                       elo=elo,
-                                                                       limit=limit)
+        key = "{clsname}.{patch}.{elo}".format(clsname=ChampionGGStatsListDto.__name__,
+                                               patch=patch,
+                                               elo=elo)
         data = self._get(key)
-        data["data"] = [ChampionGGDto(champion) for champion in data["data"]]
-        return ChampionGGListDto(data)
+        data["data"] = [ChampionGGStatsDto(champion) for champion in data["data"]]
+        return ChampionGGStatsListDto(data)
 
-    @put.register(ChampionGGListDto)
-    def put_champion_list(self, item: ChampionGGListDto, context: PipelineContext = None) -> None:
-        key = "{clsname}.{patch}.{included_data}.{elo}.{limit}".format(clsname=ChampionGGListDto.__name__,
-                                                                       patch=item["patch"],
-                                                                       included_data=item["includedData"],
-                                                                       elo=item["elo"],
-                                                                       limit=item["limit"])
+    @put.register(ChampionGGStatsListDto)
+    def put_champion_list(self, item: ChampionGGStatsListDto, context: PipelineContext = None) -> None:
+        key = "{clsname}.{patch}.{elo}".format(clsname=ChampionGGStatsListDto.__name__,
+                                               patch=item["patch"],
+                                               elo=item["elo"])
         self._put(key, item)

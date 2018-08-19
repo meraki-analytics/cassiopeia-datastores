@@ -78,8 +78,8 @@ class SimpleKVDiskService(DataSource, DataSink):
             PatchListDto: datetime.timedelta(days=1)
         }
         if "ChampionGG" in self._plugins:
-            from cassiopeia_championgg.dto import ChampionGGListDto
-            expirations[ChampionGGListDto] = datetime.timedelta(days=1)
+            from cassiopeia_championgg.dto import ChampionGGStatsListDto
+            expirations[ChampionGGStatsListDto] = datetime.timedelta(days=1)
         return expirations
 
     @abstractmethod
