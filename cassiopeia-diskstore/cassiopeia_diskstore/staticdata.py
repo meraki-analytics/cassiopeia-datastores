@@ -13,7 +13,7 @@ from cassiopeia.dto.staticdata.rune import RuneDto, RuneListDto
 from cassiopeia.dto.staticdata.realm import RealmDto
 from cassiopeia.dto.staticdata.language import LanguagesDto, LanguageStringsDto
 from cassiopeia.dto.staticdata.profileicon import ProfileIconDataDto
-from cassiopeia.datastores.riotapi.staticdata import _get_default_locale, _get_latest_version
+from cassiopeia.datastores.riotapi.common import _get_default_locale, _get_latest_version
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
