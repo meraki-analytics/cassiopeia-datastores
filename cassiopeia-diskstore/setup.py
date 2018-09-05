@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    "cassiopeia>=3.0.17",
+    "cassiopeia>=3.0.20",
     "datapipelines>=1.0.5",
     "simplekv"
 ]
 
 setup(
     name="cassiopeia-diskstore",
-    version="1.0.7",
+    version="1.0.8",
     author="Jason Maldonis; Rob Rua",
     author_email="team@merakianalytics.com",
     url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/cassiopeia-diskstore",
