@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    "cassiopeia",
+    "cassiopeia>=3.0.20",
     "datapipelines>=1.0.5",
     "sqlalchemy",
 ]
 
 setup(
     name="cassiopeia-sqlstore",
-    version="1.0.2",
+    version="1.0.3",
     author="Jason Maldonis; Rob Rua; Anton Pohli",
     author_email="team@merakianalytics.com",
     url="https://github.com/meraki-analytics/cassiopeia-datastores/tree/master/cassiopeia-sqlstore",
