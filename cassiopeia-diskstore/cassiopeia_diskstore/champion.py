@@ -4,7 +4,7 @@ import copy
 from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
 
 from cassiopeia.data import Platform, Region
-from cassiopeia.dto.champion import ChampionDto, ChampionListDto
+from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
@@ -31,55 +31,20 @@ class ChampionDiskService(SimpleKVDiskService):
     #############
     # Champions #
     #############
-
-    _validate_get_champion_status_query = Query. \
-        has("id").as_(int).or_("name").as_(str).also. \
+    _validate_get_champion_status_list_query = Query. \
         has("platform").as_(Platform)
 
-    @get.register(ChampionDto)
-    @validate_query(_validate_get_champion_status_query, convert_region_to_platform)
-    def get_champion_status(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionDto:
-        champions_query = copy.deepcopy(query)
-        if "id" in champions_query:
-            champions_query.pop("id")
-        if "name" in champions_query:
-            champions_query.pop("name")
-        champions = context[context.Keys.PIPELINE].get(ChampionListDto, query=champions_query)
-
-        def find_matching_attribute(list_of_dtos, attrname, attrvalue):
-            for dto in list_of_dtos:
-                if dto.get(attrname, None) == attrvalue:
-                    return dto
-
-        if "id" in query:
-            champion = find_matching_attribute(champions["champions"], "id", query["id"])
-        elif "name" in query:
-            champion = find_matching_attribute(champions["champions"], "name", query["name"])
-        else:
-            raise ValueError("Impossible!")
-        if champion is None:
-            raise NotFoundError
-        return ChampionDto(champion)
-
-    _validate_get_champion_status_list_query = Query. \
-        has("platform").as_(Platform).also. \
-        can_have("freeToPlay").with_default(False)
-
-    @get.register(ChampionListDto)
+    @get.register(ChampionRotationDto)
     @validate_query(_validate_get_champion_status_list_query, convert_region_to_platform)
-    def get_champion_status_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionListDto:
+    def get_champion_status_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionRotationDto:
         platform = query["platform"].value
-        free_to_play = str(query["freeToPlay"])
-        key = "{clsname}.{platform}.{free_to_play}".format(clsname="ChampionStatusListDto",
-                                                           platform=platform,
-                                                           free_to_play=free_to_play)
-        return ChampionListDto(self._get(key))
+        key = "{clsname}.{platform}".format(clsname="ChampionRotationDto",
+                                                           platform=platform)
+        return ChampionRotationDto(self._get(key))
 
-    @put.register(ChampionListDto)
-    def put_champion_status_list(self, item: ChampionListDto, context: PipelineContext = None) -> None:
+    @put.register(ChampionRotationDto)
+    def put_champion_status_list(self, item: ChampionRotationDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
-        free_to_play = item["freeToPlay"]
-        key = "{clsname}.{platform}.{free_to_play}".format(clsname="ChampionStatusListDto",
-                                                           platform=platform,
-                                                           free_to_play=free_to_play)
+        key = "{clsname}.{platform}".format(clsname="ChampionRotationDto",
+                                                           platform=platform)
         self._put(key, item)
