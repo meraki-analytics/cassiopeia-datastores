@@ -61,7 +61,7 @@ class SQLStore(DataSource, DataSink):
             if isinstance(value, datetime.timedelta):
                 self._expirations[key] = value.seconds + 24 * 60 * 60 * value.days
         # Create database connection
-        self._engine = create_engine(connection_string, echo=debug)
+        self._engine = create_engine(connection_string, echo=debug, pool_size=pool_size, max_overflow=max_overflow)
         metadata.bind = self._engine
         metadata.create_all()
         self._session_factory = sessionmaker(bind=self._engine)
