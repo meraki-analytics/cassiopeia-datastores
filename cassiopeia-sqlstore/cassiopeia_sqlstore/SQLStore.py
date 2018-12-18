@@ -13,7 +13,7 @@ from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.summoner import SummonerDto
 from cassiopeia.dto.match import MatchDto, TimelineDto
 from cassiopeia.dto.championmastery import ChampionMasteryListDto, ChampionMasteryDto
-from cassiopeia.dto.champion import ChampionListDto, ChampionDto
+from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
 from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto, ChallengerLeagueListDto, MasterLeagueListDto
 from cassiopeia.dto.status import ShardStatusDto
@@ -24,7 +24,7 @@ from .common import metadata, SQLBaseObject, sql_classes, Constant
 from .summoner import SQLSummoner
 from .match import SQLMatch
 from .timeline import SQLTimeline
-from .champion import SQLChampionStatus
+from .champion import SQlChampionRotation
 from .championmastery import SQLChampionMastery
 from .spectator import SQLCurrentGameInfo, SQLCurrentGameParticipant
 from .league import SQLLeague, SQLLeaguePosition, SQLLeaguePositions
@@ -37,10 +37,9 @@ Note: Because of the implementation details, some Dtos share the same expiration
 FeaturedGamesDto shares expiration of CurrentGameInfoDto
 ChallengerLeagueListDto and MasterLeagueListDto share expiration of LeagueListDto
 ChampionMasteryListDto shares expiration of ChampionMasteryDto
-ChampionListDto shares expiration of ChampionDto
 '''
 default_expirations = {
-    ChampionDto: datetime.timedelta(days=1),
+    ChampionRotationDto: datetime.timedelta(days=1),
     ChampionMasteryDto: datetime.timedelta(days=7),
     MatchDto: -1,
     TimelineDto: -1,
@@ -62,7 +61,7 @@ class SQLStore(DataSource, DataSink):
             if isinstance(value, datetime.timedelta):
                 self._expirations[key] = value.seconds + 24 * 60 * 60 * value.days
         # Create database connection
-        self._engine = create_engine(connection_string, echo=debug, pool_size=pool_size, max_overflow=max_overflow)
+        self._engine = create_engine(connection_string, echo=debug)
         metadata.bind = self._engine
         metadata.create_all()
         self._session_factory = sessionmaker(bind=self._engine)
@@ -282,35 +281,24 @@ class SQLStore(DataSource, DataSink):
     # Champion Endpoint #
     #####################
 
-    _validate_get_champion_status_list_query = Query. \
-        has("platform").as_(Platform).also. \
-        can_have("freeToPlay").with_default(False)
+    _validate_get_champion_rotation_query = Query. \
+        has("platform").as_(Platform)
 
     @dbconnect
-    @get.register(ChampionListDto)
-    @validate_query(_validate_get_champion_status_list_query, convert_region_to_platform)
-    def get_champion_status_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionListDto:
+    @get.register(ChampionRotationDto)
+    @validate_query(_validate_get_champion_rotation_query, convert_region_to_platform)
+    def get_champion_rotation(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ChampionRotationDto:
         platform = query["platform"].value
         region = query["platform"].region.value
-        freeToPlay = query["freeToPlay"]
-        if freeToPlay:
-            champions = self._all(self._session().query(SQLChampionStatus) \
-                                    .filter_by(platform=platform) \
-                                    .filter_by(freeToPlay=freeToPlay))
-        else:
-            champions = self._all(self._session().query(SQLChampionStatus) \
-                                    .filter_by(platform=platform))
-        champions = [champ.to_dto() for champ in champions]
-        for champ in champions:
-            champ["region"] = region
-        return ChampionListDto({"region":region, "freeToPlay":freeToPlay, "champions":champions})
+        rotation = self._one(self._session().query(SQlChampionRotation) \
+                    .filter(SQlChampionRotation.platform == platform))
+        dto = rotation.to_dto()
+        dto['region'] = region
+        return dto
 
-    @put.register(ChampionListDto)
-    def put_champion_status_list(self, item: ChampionListDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"]).platform.value
-        for champ in item["champions"]:
-            champ["platform"] = platform
-        self._put_many(item["champions"], SQLChampionStatus)
+    @put.register(ChampionRotationDto)
+    def put_champion_rotation(self, item: ChampionRotationDto, context: PipelineContext = None) -> None:
+        self._put(SQlChampionRotation(**item))
 
 
     ######################
