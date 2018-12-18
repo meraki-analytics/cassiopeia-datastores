@@ -8,7 +8,7 @@ import simplekv, simplekv.fs
 from datapipelines import DataSource, DataSink, PipelineContext, NotFoundError
 
 from cassiopeia.dto.common import DtoObject
-from cassiopeia.dto.champion import ChampionDto as ChampionStatusDto, ChampionListDto as ChampionStatusListDto
+from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
 from cassiopeia.dto.league import LeaguePositionsDto, LeagueListDto, MasterLeagueListDto, ChallengerLeagueListDto
 from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
@@ -61,8 +61,7 @@ class SimpleKVDiskService(DataSource, DataSink):
             ProfileIconDataDto: -1,
             LanguagesDto: -1,
             LanguageStringsDto: -1,
-            ChampionStatusDto: datetime.timedelta(days=1),
-            ChampionStatusListDto: datetime.timedelta(days=1),
+            ChampionRotationDto: datetime.timedelta(days=1),
             ChampionMasteryDto: datetime.timedelta(days=7),
             ChampionMasteryListDto: datetime.timedelta(days=7),
             LeaguePositionsDto: datetime.timedelta(hours=6),
