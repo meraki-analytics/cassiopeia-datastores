@@ -32,8 +32,9 @@ class SummonerDiskService(SimpleKVDiskService):
     ############
 
     _validate_get_summoner_query = Query. \
-        has("id").as_(int). \
-        or_("account.id").as_(int). \
+        has("id").as_(str). \
+        or_("account.id").as_(str). \
+        or_("account.puuid").as_(str). \
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
 
@@ -46,10 +47,11 @@ class SummonerDiskService(SimpleKVDiskService):
         summoner_name = str(summoner_name.encode("utf-8"))
         for key in self._store:
             if key.startswith("SummonerDto."):
-                _, platform, id_, account_id, name = key.split(".")
+                _, platform, id_, account_id, account_puuid, name = key.split(".")
                 if platform == platform_str and any([
                     id_ == str(query.get("id", None)),
                     account_id == str(query.get("account.id", None)),
+                    account_puuid == str(query.get("account.puuid", None)),
                     name == summoner_name
                 ]):
                     return SummonerDto(self._get(key))
@@ -61,9 +63,10 @@ class SummonerDiskService(SimpleKVDiskService):
         platform = Region(item["region"]).platform.value
         name = item["name"].replace(" ", "").lower()
         name = name.encode("utf-8")
-        key = "{clsname}.{platform}.{id}.{account_id}.{name}".format(clsname=SummonerDto.__name__,
+        key = "{clsname}.{platform}.{id}.{account_id}.{puuid}.{name}".format(clsname=SummonerDto.__name__,
                                                                      platform=platform,
                                                                      id=item["id"],
                                                                      account_id=item["accountId"],
+                                                                     puuid=item["puuid"],
                                                                      name=name)
         self._put(key, item)
