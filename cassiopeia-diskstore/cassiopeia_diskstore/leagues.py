@@ -3,7 +3,7 @@ from typing import Type, TypeVar, MutableMapping, Any, Iterable
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region, Queue
-from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, ChallengerLeagueListDto, LeagueListDto
+from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, GrandmasterLeagueListDto, ChallengerLeagueListDto, LeagueListDto
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
@@ -30,7 +30,7 @@ class LeaguesDiskService(SimpleKVDiskService):
     # League positions
 
     _validate_get_league_positions_query = Query. \
-        has("summoner.id").as_(int).also. \
+        has("summoner.id").as_(str).also. \
         has("platform").as_(Platform)
 
     @get.register(LeaguePositionsDto)
@@ -85,6 +85,28 @@ class LeaguesDiskService(SimpleKVDiskService):
                                                     queue=item["queue"])
         self._put(key, item)
 
+    # Grandmaster
+
+    _validate_get_master_league_query = Query. \
+        has("platform").as_(Platform).also. \
+        has("queue").as_(Queue)
+
+    @get.register(GrandmasterLeagueListDto)
+    @validate_query(_validate_get_master_league_query, convert_region_to_platform)
+    def get_grandmaster_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> GrandmasterLeagueListDto:
+        key = "{clsname}.{platform}.{queue}".format(clsname=GrandmasterLeagueListDto.__name__,
+                                                    platform=query["platform"].value,
+                                                    queue=query["queue"].value)
+        return GrandmasterLeagueListDto(self._get(key))
+
+    @put.register(GrandmasterLeagueListDto)
+    def put_grandmaster_league(self, item: GrandmasterLeagueListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"]).platform.value
+        key = "{clsname}.{platform}.{queue}".format(clsname=GrandmasterLeagueListDto.__name__,
+                                                    platform=platform,
+                                                    queue=item["queue"])
+        self._put(key, item)
+
     # Master
 
     _validate_get_master_league_query = Query. \
@@ -93,14 +115,14 @@ class LeaguesDiskService(SimpleKVDiskService):
 
     @get.register(MasterLeagueListDto)
     @validate_query(_validate_get_master_league_query, convert_region_to_platform)
-    def get_mastery_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasterLeagueListDto:
+    def get_master_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MasterLeagueListDto:
         key = "{clsname}.{platform}.{queue}".format(clsname=MasterLeagueListDto.__name__,
                                                     platform=query["platform"].value,
                                                     queue=query["queue"].value)
         return MasterLeagueListDto(self._get(key))
 
     @put.register(MasterLeagueListDto)
-    def put_mastery_league(self, item: MasterLeagueListDto, context: PipelineContext = None) -> None:
+    def put_master_league(self, item: MasterLeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         key = "{clsname}.{platform}.{queue}".format(clsname=MasterLeagueListDto.__name__,
                                                     platform=platform,
