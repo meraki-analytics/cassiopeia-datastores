@@ -87,12 +87,12 @@ class LeaguesDiskService(SimpleKVDiskService):
 
     # Grandmaster
 
-    _validate_get_master_league_query = Query. \
+    _validate_get_grandmaster_league_query = Query. \
         has("platform").as_(Platform).also. \
         has("queue").as_(Queue)
 
     @get.register(GrandmasterLeagueListDto)
-    @validate_query(_validate_get_master_league_query, convert_region_to_platform)
+    @validate_query(_validate_get_grandmaster_league_query, convert_region_to_platform)
     def get_grandmaster_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> GrandmasterLeagueListDto:
         key = "{clsname}.{platform}.{queue}".format(clsname=GrandmasterLeagueListDto.__name__,
                                                     platform=query["platform"].value,
