@@ -1,3 +1,5 @@
+import base64
+
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
 from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
@@ -33,8 +35,8 @@ class SummonerDiskService(SimpleKVDiskService):
 
     _validate_get_summoner_query = Query. \
         has("id").as_(str). \
-        or_("account.id").as_(str). \
-        or_("account.puuid").as_(str). \
+        or_("account_id").as_(str). \
+        or_("puuid").as_(str). \
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
 
@@ -47,14 +49,23 @@ class SummonerDiskService(SimpleKVDiskService):
         summoner_name = str(summoner_name.encode("utf-8"))
         for key in self._store:
             if key.startswith("SummonerDto."):
-                _, platform, id_, account_id, account_puuid, name = key.split(".")
+                _, platform, id_, account_id, puuid, name = key.split(".")
                 if platform == platform_str and any([
-                    id_ == str(query.get("id", None)),
-                    account_id == str(query.get("account.id", None)),
-                    account_puuid == str(query.get("account.puuid", None)),
+                    str(query.get("id", None)).startswith(id_),
+                    str(query.get("account_id", None)).startswith(account_id),
+                    str(query.get("puuid", None)).startswith(puuid),
                     name == summoner_name
                 ]):
-                    return SummonerDto(self._get(key))
+                    dto = SummonerDto(self._get(key))
+                    dto_name = dto["name"].replace(" ", "").lower()
+                    dto_name = str(dto_name.encode("utf-8"))
+                    if any([
+                        dto["id"] == str(query.get("id", None)),
+                        dto["accountId"] == str(query.get("account_id", None)),
+                        dto["puuid"] == str(query.get("puuid", None)),
+                        dto_name == summoner_name
+                    ]):
+                        return dto
         else:
             raise NotFoundError
 
@@ -65,8 +76,8 @@ class SummonerDiskService(SimpleKVDiskService):
         name = name.encode("utf-8")
         key = "{clsname}.{platform}.{id}.{account_id}.{puuid}.{name}".format(clsname=SummonerDto.__name__,
                                                                      platform=platform,
-                                                                     id=item["id"],
-                                                                     account_id=item["accountId"],
-                                                                     puuid=item["puuid"],
+                                                                     id=item["id"][:8],
+                                                                     account_id=item["accountId"][:8],
+                                                                     puuid=item["puuid"][:8],
                                                                      name=name)
         self._put(key, item)
