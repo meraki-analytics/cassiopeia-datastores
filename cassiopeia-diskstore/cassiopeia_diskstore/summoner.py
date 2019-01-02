@@ -1,5 +1,3 @@
-import base64
-
 from typing import Type, TypeVar, MutableMapping, Any, Iterable
 
 from datapipelines import DataSource, DataSink, PipelineContext, Query, NotFoundError, validate_query
