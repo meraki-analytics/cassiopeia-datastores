@@ -34,7 +34,7 @@ class ChampionMasteryDiskService(SimpleKVDiskService):
 
     _validate_get_champion_mastery_query = Query. \
         has("platform").as_(Platform).also. \
-        has("summoner.id").also. \
+        has("summoner.id").as_(str).also. \
         has("champion.id").as_(int)
 
     @get.register(ChampionMasteryDto)
@@ -61,7 +61,7 @@ class ChampionMasteryDiskService(SimpleKVDiskService):
 
     _validate_get_champion_mastery_list_query = Query. \
         has("platform").as_(Platform).also. \
-        has("summoner.id").as_(int)
+        has("summoner.id").as_(str)
 
     @get.register(ChampionMasteryListDto)
     @validate_query(_validate_get_champion_mastery_list_query, convert_region_to_platform)

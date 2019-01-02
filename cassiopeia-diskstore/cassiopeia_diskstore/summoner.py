@@ -32,8 +32,9 @@ class SummonerDiskService(SimpleKVDiskService):
     ############
 
     _validate_get_summoner_query = Query. \
-        has("id").as_(int). \
-        or_("account.id").as_(int). \
+        has("id").as_(str). \
+        or_("account_id").as_(str). \
+        or_("puuid").as_(str). \
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
 
@@ -46,13 +47,23 @@ class SummonerDiskService(SimpleKVDiskService):
         summoner_name = str(summoner_name.encode("utf-8"))
         for key in self._store:
             if key.startswith("SummonerDto."):
-                _, platform, id_, account_id, name = key.split(".")
+                _, platform, id_, account_id, puuid, name = key.split(".")
                 if platform == platform_str and any([
-                    id_ == str(query.get("id", None)),
-                    account_id == str(query.get("account.id", None)),
+                    str(query.get("id", None)).startswith(id_),
+                    str(query.get("account_id", None)).startswith(account_id),
+                    str(query.get("puuid", None)).startswith(puuid),
                     name == summoner_name
                 ]):
-                    return SummonerDto(self._get(key))
+                    dto = SummonerDto(self._get(key))
+                    dto_name = dto["name"].replace(" ", "").lower()
+                    dto_name = str(dto_name.encode("utf-8"))
+                    if any([
+                        dto["id"] == str(query.get("id", None)),
+                        dto["accountId"] == str(query.get("account_id", None)),
+                        dto["puuid"] == str(query.get("puuid", None)),
+                        dto_name == summoner_name
+                    ]):
+                        return dto
         else:
             raise NotFoundError
 
@@ -61,9 +72,10 @@ class SummonerDiskService(SimpleKVDiskService):
         platform = Region(item["region"]).platform.value
         name = item["name"].replace(" ", "").lower()
         name = name.encode("utf-8")
-        key = "{clsname}.{platform}.{id}.{account_id}.{name}".format(clsname=SummonerDto.__name__,
+        key = "{clsname}.{platform}.{id}.{account_id}.{puuid}.{name}".format(clsname=SummonerDto.__name__,
                                                                      platform=platform,
-                                                                     id=item["id"],
-                                                                     account_id=item["accountId"],
+                                                                     id=item["id"][:8],
+                                                                     account_id=item["accountId"][:8],
+                                                                     puuid=item["puuid"][:8],
                                                                      name=name)
         self._put(key, item)

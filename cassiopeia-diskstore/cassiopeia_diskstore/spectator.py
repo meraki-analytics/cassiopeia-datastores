@@ -52,7 +52,7 @@ class SpectatorDiskService(SimpleKVDiskService):
 
     _validate_get_current_game_query = Query. \
         has("platform").as_(Platform).also. \
-        has("summoner.id").as_(int)
+        has("summoner.id").as_(str)
 
     @get.register(CurrentGameInfoDto)
     @validate_query(_validate_get_current_game_query, convert_region_to_platform)
