@@ -33,7 +33,7 @@ class SummonerDiskService(SimpleKVDiskService):
 
     _validate_get_summoner_query = Query. \
         has("id").as_(str). \
-        or_("account_id").as_(str). \
+        or_("accountId").as_(str). \
         or_("puuid").as_(str). \
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
