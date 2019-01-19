@@ -4,8 +4,6 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
-    "cassiopeia>=3.0.20",
-    "datapipelines>=1.0.5",
     "sqlalchemy",
 ]
 
