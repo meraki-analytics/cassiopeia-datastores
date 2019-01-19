@@ -1,3 +1,2 @@
-cassiopeia>=3.0.20
 datapipelines
 sqlalchemy
