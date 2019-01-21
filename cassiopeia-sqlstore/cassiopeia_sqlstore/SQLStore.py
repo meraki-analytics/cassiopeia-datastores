@@ -167,7 +167,8 @@ class SQLStore(DataSource, DataSink):
 
     _validate_get_summoner_query = Query. \
         has("id").as_(str). \
-        or_("account.id").as_(str). \
+        or_("accountId").as_(str). \
+        or_("puuid").as_(str). \
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
 
@@ -177,18 +178,26 @@ class SQLStore(DataSource, DataSink):
     def get_summoner(self, query: MutableMapping[str, Any], context: PipelineContext) -> SummonerDto:
         session = self._session()
         platform_str = query["platform"].value
-        if "account.id" in query:
+        summoner_name = query.get("name", "").replace(" ", "").lower()
+        # Need to hash the name because it can have invalid characters.
+        summoner_name = str(summoner_name.encode("utf-8"))
+        if "accountId" in query:
             summoner = self._one(session.query(SQLSummoner) \
                                  .filter_by(platform=platform_str) \
-                                 .filter_by(accountId=query["account.id"]))
+                                 .filter_by(accountId=query["accountId"]))
         elif "id" in query:
             summoner = self._one(session.query(SQLSummoner) \
                                  .filter_by(platform=platform_str) \
                                  .filter_by(id=query["id"]))
+        elif "puuid" in query:
+            summoner = self._one(session.query(SQLSummoner) \
+                                 .filter_by(platform=platform_str) \
+                                 .filter_by(puuid=query["puuid"]))
+
         elif "name" in query:
             summoner = self._first(session.query(SQLSummoner) \
                                    .filter_by(platform=platform_str) \
-                                   .filter_by(name=query["name"]))
+                                   .filter_by(name=summoner_name))
         else:
             raise RuntimeError("Impossible!")
         return summoner.to_dto()
