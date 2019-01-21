@@ -178,9 +178,6 @@ class SQLStore(DataSource, DataSink):
     def get_summoner(self, query: MutableMapping[str, Any], context: PipelineContext) -> SummonerDto:
         session = self._session()
         platform_str = query["platform"].value
-        summoner_name = query.get("name", "").replace(" ", "").lower()
-        # Need to hash the name because it can have invalid characters.
-        summoner_name = str(summoner_name.encode("utf-8"))
         if "accountId" in query:
             summoner = self._one(session.query(SQLSummoner) \
                                  .filter_by(platform=platform_str) \
@@ -197,7 +194,7 @@ class SQLStore(DataSource, DataSink):
         elif "name" in query:
             summoner = self._first(session.query(SQLSummoner) \
                                    .filter_by(platform=platform_str) \
-                                   .filter_by(name=summoner_name))
+                                   .filter_by(name=query["name"]))
         else:
             raise RuntimeError("Impossible!")
         return summoner.to_dto()

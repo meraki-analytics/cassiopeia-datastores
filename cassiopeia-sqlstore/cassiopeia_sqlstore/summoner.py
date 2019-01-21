@@ -15,9 +15,8 @@ class SQLSummoner(SQLBaseObject):
                    Column('name', String(length=30)),
                    Column('summonerLevel', Integer),
                    Column('profileIconId', Integer),
-                   Column('revisionDate', BigInteger)
-                   # TODO Removed lastUpdate, need to make sure I'm not killing a feature
-                   )
+                   Column('revisionDate', BigInteger),
+                   Column('lastUpdate', BigInteger))
 
 
 map_object(SQLSummoner)

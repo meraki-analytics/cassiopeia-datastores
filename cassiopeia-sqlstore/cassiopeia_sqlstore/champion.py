@@ -12,7 +12,6 @@ class ChampionRotationChampionDto(DtoObject):
 
 class SQlChampionRotationChampion(SQLBaseObject):
     _dto_type = ChampionRotationChampionDto
-    # TODO Check what this id is. I think it's championId, but I want to make sure
     _table = Table("championrotation_champion", metadata,
                    Column("id", Integer, primary_key=True),
                    Column("platform", String(5), primary_key=True),

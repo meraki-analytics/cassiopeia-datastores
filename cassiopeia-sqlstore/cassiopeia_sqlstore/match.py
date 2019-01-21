@@ -145,11 +145,9 @@ class SQLMatchParticipantStats(SQLBaseObject):
                    Column("longestTimeSpentLiving", Integer),
                    Column("totalTimeCrowdControlDealt", Integer),
                    Column("timeCCingOthers", Integer),
-                   # TODO Seems like the next 3 stats are always 0, maybe we shouldn't stock them?
                    Column("totalPlayerScore", Integer),
                    Column("combatPlayerScore", Integer),
                    Column("totalScoreRank", Integer),
-                   # TODO See the objective stats come from. Haven't seen the variable in soloQ games, mb Nexus Blitz?
                    Column("teamObjective", Integer),
                    Column("objectivePlayerScore", Integer),
                    Column("altarsCaptured", Integer),
@@ -258,10 +256,6 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                 newKey = key[2:]
                 player[newKey] = dto.pop(key)
         dto["player"] = player
-        # TODO Check behaviour, the Uri is supplied by Riot so why is it self-made here? Mb should cut the field
-        # Create match history Uri
-        #dto["player"]["matchHistoryUri"] = "/v1/stats/player_history/" + player["platformId"] + "/" + str(
-        #    player["accountId"])
         return dto
 
 
