@@ -16,17 +16,16 @@ class SQLLeagueMiniSeries(SQLBaseObject):
     _dto_type = LeagueMiniSeriesDto
     _table = Table("league_miniseries", metadata,
                    Column("leagueId", String(36), primary_key=True),
-                   Column("playerOrTeamId", String(63), primary_key=True),
+                   Column("summonerId", String(63), primary_key=True),
                    Column("platformId", String(7), primary_key=True),
                    Column("target", Integer),
                    Column("wins", Integer),
                    Column("losses", Integer),
                    Column("progress", String(5)),
                    ForeignKeyConstraint(
-                       ["leagueId", "playerOrTeamId", "platformId"],
-                       ["league_position.leagueId", "league_position.playerOrTeamId", "league_position.platformId"]
+                       ["leagueId", "summonerId", "platformId"],
+                       ["league_position.leagueId", "league_position.summonerId", "league_position.platformId"]
                    ))
-
 
 map_object(SQLLeagueMiniSeries)
 
@@ -39,9 +38,9 @@ class SQLLeaguePosition(SQLBaseObject):
     _dto_type = LeaguePositionDto
     _table = Table("league_position", metadata,
                    Column("leagueId", String(36), primary_key=True),
-                   Column("playerOrTeamId", String(63), primary_key=True),
+                   Column("summonerId", String(63), primary_key=True),
                    Column("platformId", String(7), primary_key=True),
-                   Column("playerOrTeamName", String(30)),
+                   Column("summonerName", String(30)),
                    Column("leaguePoints", Integer),
                    Column("rank", Integer),
                    Column("wins", Integer),
@@ -119,9 +118,9 @@ class SQLLeaguePositions(SQLBaseObject):
                    Column("lastUpdate", BigInteger))
     _relationships = {"positions": (SQLLeaguePosition, {"primaryjoin":
                                                             (remote(_table.c.summonerId) == foreign(
-                                                                SQLLeaguePosition.playerOrTeamId)) &
+                                                                SQLLeaguePosition.summonerId)) &
                                                             (remote(_table.c.platformId) == foreign(
-                                                                SQLLeaguePosition.platformId)),
+                                                                SQLLeaguePosition.summonerId)),
                                                         })}
 
 

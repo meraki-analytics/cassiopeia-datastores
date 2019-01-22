@@ -15,7 +15,7 @@ from cassiopeia.dto.match import MatchDto, TimelineDto
 from cassiopeia.dto.championmastery import ChampionMasteryListDto, ChampionMasteryDto
 from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.dto.spectator import CurrentGameInfoDto, FeaturedGamesDto
-from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto, ChallengerLeagueListDto, MasterLeagueListDto
+from cassiopeia.dto.league import LeagueListDto, LeaguePositionsDto, ChallengerLeagueListDto, MasterLeagueListDto, GrandmasterLeagueListDto
 from cassiopeia.dto.status import ShardStatusDto
 
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
@@ -361,6 +361,7 @@ class SQLStore(DataSource, DataSink):
     @put.register(LeagueListDto)
     @put.register(ChallengerLeagueListDto)
     @put.register(MasterLeagueListDto)
+    @put.register(GrandmasterLeagueListDto)
     @dbconnect
     def put_league(self, item: LeagueListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
@@ -429,6 +430,23 @@ class SQLStore(DataSource, DataSink):
                            .filter_by(queueId=queue.id) \
                            .filter_by(tier=tier))
         return ChallengerLeagueListDto(**league.to_dto())
+
+    _validate_get_grandmaster_league_query = Query. \
+        has("platform").as_(Platform).also. \
+        has("queue").as_(Queue)
+
+    @dbconnect
+    @get.register(GrandmasterLeagueListDto)
+    @validate_query(_validate_get_grandmaster_league_query, convert_region_to_platform)
+    def get_master_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> GrandmasterLeagueListDto:
+        platform = query["platform"].value
+        queue = Constant.create(query["queue"].value)
+        tier = Tier._order()[Tier.grandmaster]
+        league = self._one(self._session().query(SQLLeague) \
+                                .filter_by(platformId=platform) \
+                                .filter_by(queueId=queue.id) \
+                                .filter_by(tier=tier))
+        return GrandmasterLeagueListDto(**league.to_dto())
 
     _validate_get_master_league_query = Query. \
         has("platform").as_(Platform).also. \
