@@ -14,7 +14,7 @@ class CurrentGameParticipantDto(DtoObject):
 class SQLCurrentGameParticipant(SQLBaseObject):
     _dto_type = CurrentGameParticipantDto
     _table = Table("current_game_participant", metadata,
-                   Column("current_game_platformId", String(5), primary_key=True),
+                   Column("current_game_platformId", String(7), primary_key=True),
                    Column("current_game_gameId", BigInteger, primary_key=True),
                    Column("participantId", Integer, primary_key=True),
                    Column("teamId", Integer),
@@ -41,7 +41,7 @@ class CurrentGameBanDto(DtoObject):
 class SQLCurrentGameBan(SQLBaseObject):
     _dto_type = CurrentGameBanDto
     _table = Table("current_game_ban", metadata,
-                   Column("current_game_platformId", String(5), primary_key=True),
+                   Column("current_game_platformId", String(7), primary_key=True),
                    Column("current_game_gameId", BigInteger, primary_key=True),
                    Column("pickTurn", Integer, primary_key=True),
                    Column("teamId", Integer),
@@ -58,7 +58,7 @@ map_object(SQLCurrentGameBan)
 class SQLCurrentGameInfo(SQLBaseObject):
     _dto_type = CurrentGameInfoDto
     _table = Table("current_game", metadata,
-                   Column("platformId", String(5), primary_key=True),
+                   Column("platformId", String(7), primary_key=True),
                    Column("gameId", BigInteger, primary_key=True),
                    Column("gameStartTime", BigInteger),
                    Column("gameMode", String(10)),

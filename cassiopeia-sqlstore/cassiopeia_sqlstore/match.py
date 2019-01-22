@@ -15,7 +15,7 @@ class MatchParticipantTimelineDeltasDto(DtoObject):
 class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
     _dto_type = MatchParticipantTimelineDeltasDto
     _table = Table("match_participant_timeline_deltas", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("match_participant_participantId", Integer, primary_key=True),
                    # The column needs to be defined explicitly because it is a primary key
@@ -48,7 +48,7 @@ class MatchParticipantTimelineDto(DtoObject):
 class SQLMatchParticipantTimeline(SQLBaseObject):
     _dto_type = MatchParticipantTimelineDto
     _table = Table("match_participant_timeline", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("match_participant_participantId", Integer, primary_key=True),
                    Column("lane", String(12)),
@@ -82,7 +82,7 @@ class MatchParticipantStatsDto(DtoObject):
 
 class SQLMatchParticipantStats(SQLBaseObject):
     _table = Table("match_participant_stats", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("match_participant_participantId", Integer, primary_key=True),
                    Column("win", Boolean),
@@ -202,7 +202,7 @@ class MatchParticipantDto(DtoObject):
 class SQLMatchParticipant(SQLBaseObject):
     _dto_type = MatchParticipantDto
     _table = Table("match_participant", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("participantId", Integer, primary_key=True),
                    Column("championId", Integer),
@@ -228,8 +228,8 @@ class MatchParticipantsIdentitiesDto(DtoObject):
 class SQLMatchParticipantsIdentities(SQLBaseObject):
     _dto_type = MatchParticipantsIdentitiesDto
     _table = Table("match_participant_identities", metadata,
-                   Column("p_currentPlatformId", String(5), primary_key=True),
-                   Column("p_platformId", String(5)),
+                   Column("p_currentPlatformId", String(7), primary_key=True),
+                   Column("p_platformId", String(7)),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("participantId", Integer, primary_key=True),
                    Column("p_summonerName", String(30)),
@@ -269,7 +269,7 @@ class MatchBanDto(DtoObject):
 class SQLMatchBan(SQLBaseObject):
     _dto_type = MatchBanDto
     _table = Table("match_ban", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("pickTurn", Integer, primary_key=True),
                    Column("championId", Integer),
@@ -289,7 +289,7 @@ class MachTeamDto(DtoObject):
 class SQLMatchTeam(SQLBaseObject):
     _dto_type = MachTeamDto
     _table = Table("match_team", metadata,
-                   Column("match_platformId", String(5), primary_key=True),
+                   Column("match_platformId", String(7), primary_key=True),
                    Column("match_gameId", BigInteger, primary_key=True),
                    Column("teamId", Integer, primary_key=True),
                    Column("firstDragon", Boolean),
@@ -329,7 +329,7 @@ map_object(SQLMatchTeam)
 class SQLMatch(SQLBaseObject):
     _dto_type = MatchDto
     _table = Table("match", metadata,
-                   Column("platformId", String(5), primary_key=True),
+                   Column("platformId", String(7), primary_key=True),
                    Column("gameId", BigInteger, primary_key=True),
                    Column("seasonId", Integer),
                    Column("queueId", Integer),

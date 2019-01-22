@@ -14,7 +14,7 @@ class SQLTimelineFrameEvent(SQLBaseObject):
     _dto_type = TimelineFrameEventDto
     _table = Table("match_timeline_frame_event", metadata,
                    Column("match_timeline_matchId", BigInteger, primary_key=True),
-                   Column("match_timeline_platformId", String(5), primary_key=True),
+                   Column("match_timeline_platformId", String(7), primary_key=True),
                    Column("match_timeline_frame_id", Integer, primary_key=True),
                    Column("id", Integer, primary_key=True),
                    Column("timestamp", Integer),
@@ -64,7 +64,7 @@ class SQlTimelineParticipantFrame(SQLBaseObject):
     _dto_type = TimelineParticipantFrameDto
     _table = Table("match_timeline_frame_participant", metadata,
                    Column("match_timeline_matchId", BigInteger, primary_key=True),
-                   Column("match_timeline_platformId", String(5), primary_key=True),
+                   Column("match_timeline_platformId", String(7), primary_key=True),
                    Column("match_timeline_frame_id", Integer, primary_key=True),
                    Column("participantId", Integer, primary_key=True),
                    Column("currentGold", Integer),
@@ -109,7 +109,7 @@ class SQLTimelineFrame(SQLBaseObject):
     _dto_type = TimelineFrameDto
     _table = Table("match_timeline_frame", metadata,
                    Column("match_timeline_matchId", BigInteger, primary_key=True),
-                   Column("match_timeline_platformId", String(5), primary_key=True),
+                   Column("match_timeline_platformId", String(7), primary_key=True),
                    Column("id", Integer, primary_key=True),
                    Column("timestamp", Integer),
                    ForeignKeyConstraint(
@@ -140,7 +140,7 @@ class SQLTimeline(SQLBaseObject):
     _dto_type = TimelineDto
     _table = Table('match_timeline', metadata,
                    Column("matchId", BigInteger, primary_key=True),
-                   Column("platformId", String(5), primary_key=True),
+                   Column("platformId", String(7), primary_key=True),
                    Column("frameInterval", Integer),
                    Column("lastUpdate", BigInteger))
     _relationships = {"frames": (SQLTimelineFrame, {"lazy": "selectin"})}

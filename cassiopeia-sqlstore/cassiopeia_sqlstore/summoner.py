@@ -8,7 +8,7 @@ from .common import metadata, SQLBaseObject, map_object
 class SQLSummoner(SQLBaseObject):
     _dto_type = SummonerDto
     _table = Table('summoner', metadata,
-                   Column('platform', String(length=5), primary_key=True),
+                   Column('platform', String(length=7), primary_key=True),
                    Column('id', String(63), primary_key=True),
                    Column('accountId', String(56)),
                    Column('puuid', String(78)),

@@ -8,7 +8,7 @@ from .common import metadata, SQLBaseObject, map_object
 class SQLChampionMastery(SQLBaseObject):
     _dto_type = ChampionMasteryDto
     _table = Table("championmastery", metadata,
-                   Column("platformId", String(5), primary_key=True),
+                   Column("platformId", String(7), primary_key=True),
                    Column("summonerId", String(63), primary_key=True),
                    Column("championId", Integer, primary_key=True),
                    Column("chestGranted", Boolean),
