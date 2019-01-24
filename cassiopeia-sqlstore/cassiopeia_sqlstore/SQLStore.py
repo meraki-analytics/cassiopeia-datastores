@@ -509,7 +509,7 @@ class SQLStore(DataSource, DataSink):
                 self._session().merge(old_positions[i])
             else:
                 # The given position is no longer present. remove it
-                old_positions[i].delete()
+                self._session().delete(old_positions[i])
 
         for pos in map_by_id.values():
             # Create league, so it does get created in the database if it doesn't exist
