@@ -1,6 +1,6 @@
 import datetime
 
-from typing import Type, TypeVar, Mapping, MutableMapping, Any, Iterable
+from typing import Type, TypeVar, Mapping, MutableMapping, Any, Iterable, Union, List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -52,6 +52,14 @@ default_expirations = {
 
 
 class SQLStore(DataSource, DataSink):
+    class ItemExpiredException(Exception):
+        def __init__(self, item: Union[List[SQLBaseObject], SQLBaseObject]):
+            super().__init__(f"Object {item} expired")
+            if not isinstance(item, List):
+                self.items = [item]
+            else:
+                self.items = item
+
     def __init__(self, connection_string, debug=False, pool_size=10, max_overflow=20,
                  expirations: Mapping[type, float] = None) -> None:
         self._expirations = dict(expirations) if expirations is not None else default_expirations
@@ -99,23 +107,31 @@ class SQLStore(DataSource, DataSink):
         def inner(*args, **kwargs):
             session = args[0]._session()
             try:
-                func(*args, **kwargs)
+                result = func(*(args[0], session, *(args[1:])), **kwargs)
                 session.commit()
+                return result
+            except SQLStore.ItemExpiredException as e:   
+                for entry in e.items:
+                    session.delete(entry)
+                session.commit()
+                raise NotFoundError
             except:
                 session.rollback()
                 raise
             finally:
-                session.close()
+                session.close()                
 
         return inner
 
     def _one(self, query):
-        """Gets one row from the query. Raises NotFoundError if there isn't a row or if there are multiple rows"""
+        """ Gets one row from the query. 
+            Raises NotFoundError if there isn't a row or if there are multiple rows
+            Raised ItemExpiredException if the row exists but is expired
+        """
         try:
             result = query.one()
             if result.has_expired(self._expirations):
-                self._session().delete(result)
-                raise NotFoundError
+                raise SQLStore.ItemExpiredException(result)
             return result
         except (NoResultFound, MultipleResultsFound):
             raise NotFoundError
@@ -127,38 +143,38 @@ class SQLStore(DataSource, DataSink):
             raise NotFoundError
         else:
             if result.has_expired(self._expirations):
-                self._session().delete(result)
-                raise NotFoundError
+                raise SQLStore.ItemExpiredException(result)
             return result
 
     def _all(self, query):
         """Gets all rows of the query. Raises a NotFoundError if there are 0 rows"""
         if query.count() > 0:
             results = query.all()
+            expiredItems = []
             for result in results:
                 if result.has_expired(self._expirations):
-                     self._session().delete(result)
-                    raise NotFoundError
+                    expiredItems.append(result)
+            if len(expiredItems) > 0:
+                raise SQLStore.ItemExpiredException(expiredItems)
             return results
         else:
             raise NotFoundError
 
     @dbconnect
-    def _put(self, item: SQLBaseObject):
+    def _put(self, session, item: SQLBaseObject):
         """Puts a item into the database. Updates lastUpdate column"""
         if item._dto_type in self._expirations and self._expirations[item._dto_type] == 0:
             # The expiration time has been set to 0 -> shoud not be cached
             return
         item.updated()
-        self._session().add(item)
+        session.add(item)
 
     @dbconnect
-    def _put_many(self, items: Iterable[DtoObject], cls):
+    def _put_many(self, session, items: Iterable[DtoObject], cls):
         """Puts many items into the database. Updates lastUpdate column for each of them"""
         if cls._dto_type in self._expirations and self._expirations[cls._dto_type] == 0:
             # The expiration time has been set to 0 -> shoud not be cached
             return
-        session = self._session
         for item in items:
             item = cls(**item)
             item.updated()
@@ -175,11 +191,10 @@ class SQLStore(DataSource, DataSink):
         or_("name").as_(str).also. \
         has("platform").as_(Platform)
 
-    @dbconnect
-    @get.register(SummonerDto)
+    @get.register(SummonerDto)    
     @validate_query(_validate_get_summoner_query, convert_region_to_platform)
-    def get_summoner(self, query: MutableMapping[str, Any], context: PipelineContext) -> SummonerDto:
-        session = self._session()
+    @dbconnect
+    def get_summoner(self, session, query: MutableMapping[str, Any], context: PipelineContext=None) -> SummonerDto:
         platform_str = query["platform"].value
         if "accountId" in query:
             summoner = self._one(session.query(SQLSummoner) \
@@ -218,12 +233,12 @@ class SQLStore(DataSource, DataSink):
         has("id").as_(int).also. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(MatchDto)
     @validate_query(_validate_get_match_query, convert_region_to_platform)
-    def get_match(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> MatchDto:
+    @dbconnect
+    def get_match(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> MatchDto:
         platform_str = query["platform"].value
-        match = self._one(self._session().query(SQLMatch) \
+        match = self._one(session.query(SQLMatch) \
                           .filter_by(platformId=platform_str) \
                           .filter_by(gameId=query["id"]))
         return match.to_dto()
@@ -238,12 +253,12 @@ class SQLStore(DataSource, DataSink):
         has("id").as_(int).also. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(TimelineDto)
     @validate_query(_validate_get_match_query, convert_region_to_platform)
-    def get_timeline(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> TimelineDto:
+    @dbconnect
+    def get_timeline(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> TimelineDto:
         platform = query["platform"].value
-        timeline = self._one(self._session().query(SQLTimeline) \
+        timeline = self._one(session.query(SQLTimeline) \
                              .filter_by(platformId=platform) \
                              .filter_by(matchId=query["id"]))
         return timeline.to_dto()
@@ -264,15 +279,15 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("summoner.id").as_(str)
 
-    @dbconnect
     @get.register(ChampionMasteryListDto)
     @validate_query(_validate_get_champion_mastery_list_query, convert_region_to_platform)
-    def get_champion_mastery_list(self, query: MutableMapping[str, Any],
+    @dbconnect
+    def get_champion_mastery_list(self, session, query: MutableMapping[str, Any],
                                   context: PipelineContext = None) -> ChampionMasteryListDto:
         platform = query["platform"].value
         region = query["platform"].region.value
         summoner = query["summoner.id"]
-        masteries = self._all(self._session().query(SQLChampionMastery) \
+        masteries = self._all(session.query(SQLChampionMastery) \
                               .filter_by(platformId=platform) \
                               .filter_by(summonerId=summoner))
         return ChampionMasteryListDto(
@@ -294,14 +309,14 @@ class SQLStore(DataSource, DataSink):
     _validate_get_champion_rotation_query = Query. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(ChampionRotationDto)
     @validate_query(_validate_get_champion_rotation_query, convert_region_to_platform)
-    def get_champion_rotation(self, query: MutableMapping[str, Any],
+    @dbconnect
+    def get_champion_rotation(self, session, query: MutableMapping[str, Any],
                               context: PipelineContext = None) -> ChampionRotationDto:
         platform = query["platform"].value
         region = query["platform"].region.value
-        rotation = self._one(self._session().query(SQlChampionRotation) \
+        rotation = self._one(session.query(SQlChampionRotation) \
                              .filter(SQlChampionRotation.platform == platform))
         dto = rotation.to_dto()
         dto['region'] = region
@@ -321,12 +336,12 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("summoner.id").as_(str)
 
-    @dbconnect
     @get.register(CurrentGameInfoDto)
     @validate_query(_validate_get_current_game_query, convert_region_to_platform)
-    def get_current_game(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> CurrentGameInfoDto:
+    @dbconnect
+    def get_current_game(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> CurrentGameInfoDto:
         summonerId = query["summoner.id"]
-        match = self._one(self._session().query(SQLCurrentGameInfo) \
+        match = self._one(session.query(SQLCurrentGameInfo) \
                           .join(SQLCurrentGameInfo.participants) \
                           .filter(SQLCurrentGameParticipant.summonerId == summonerId))
         return match.to_dto()
@@ -340,12 +355,12 @@ class SQLStore(DataSource, DataSink):
     _validate_get_featured_games_query = Query. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(FeaturedGamesDto)
     @validate_query(_validate_get_featured_games_query, convert_region_to_platform)
-    def get_featured_games(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> FeaturedGamesDto:
+    @dbconnect
+    def get_featured_games(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> FeaturedGamesDto:
         platform = query["platform"].value
-        games = self._all(self._session().query(SQLCurrentGameInfo) \
+        games = self._all(session.query(SQLCurrentGameInfo) \
                           .filter_by(platformId=platform) \
                           .filter_by(featured=True))
         return FeaturedGamesDto({"clientRefreshInterval": 300, "gameList": [game.to_dto() for game in games],
@@ -366,11 +381,11 @@ class SQLStore(DataSource, DataSink):
     @put.register(MasterLeagueListDto)
     @put.register(GrandmasterLeagueListDto)
     @dbconnect
-    def put_league(self, item: LeagueListDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"]).platform.value
+    def put_league(self, session, item: LeagueListDto, context: PipelineContext = None) -> None:
+        platform = Region(item["region"], session).platform.value
         item["platformId"] = platform
         # Get league to update it later if it exists
-        league = self._session().query(SQLLeague) \
+        league = session.query(SQLLeague) \
             .filter_by(platformId=platform) \
             .filter_by(leagueId=item["leagueId"]).first()
         if not league:
@@ -406,12 +421,12 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("id").as_(str)
 
-    @dbconnect
     @get.register(LeagueListDto)
     @validate_query(_validate_get_league_query, convert_region_to_platform)
-    def get_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeagueListDto:
+    @dbconnect
+    def get_league(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeagueListDto:
         platform = query["platform"].value
-        league = self._one(self._session().query(SQLLeague) \
+        league = self._one(session.query(SQLLeague) \
                            .filter_by(platformId=platform) \
                            .filter_by(leagueId=query["id"]))
         return league.to_dto()
@@ -420,15 +435,15 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("queue").as_(Queue)
 
-    @dbconnect
     @get.register(ChallengerLeagueListDto)
     @validate_query(_validate_get_challenger_league_query, convert_region_to_platform)
-    def get_challenger_league(self, query: MutableMapping[str, Any],
+    @dbconnect
+    def get_challenger_league(self, session, query: MutableMapping[str, Any],
                               context: PipelineContext = None) -> ChallengerLeagueListDto:
         platform = query["platform"].value
         queue = Constant.create(query["queue"].value)
         tier = Tier._order()[Tier.challenger]
-        league = self._one(self._session().query(SQLLeague) \
+        league = self._one(session.query(SQLLeague) \
                            .filter_by(platformId=platform) \
                            .filter_by(queueId=queue.id) \
                            .filter_by(tier=tier))
@@ -438,14 +453,14 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("queue").as_(Queue)
 
-    @dbconnect
     @get.register(GrandmasterLeagueListDto)
     @validate_query(_validate_get_grandmaster_league_query, convert_region_to_platform)
-    def get_master_league(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> GrandmasterLeagueListDto:
+    @dbconnect
+    def get_master_league(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> GrandmasterLeagueListDto:
         platform = query["platform"].value
         queue = Constant.create(query["queue"].value)
         tier = Tier._order()[Tier.grandmaster]
-        league = self._one(self._session().query(SQLLeague) \
+        league = self._one(session.query(SQLLeague) \
                                 .filter_by(platformId=platform) \
                                 .filter_by(queueId=queue.id) \
                                 .filter_by(tier=tier))
@@ -455,15 +470,15 @@ class SQLStore(DataSource, DataSink):
         has("platform").as_(Platform).also. \
         has("queue").as_(Queue)
 
-    @dbconnect
     @get.register(MasterLeagueListDto)
     @validate_query(_validate_get_master_league_query, convert_region_to_platform)
-    def get_master_league(self, query: MutableMapping[str, Any],
+    @dbconnect
+    def get_master_league(self, session, query: MutableMapping[str, Any],
                           context: PipelineContext = None) -> MasterLeagueListDto:
         platform = query["platform"].value
         queue = Constant.create(query["queue"].value)
         tier = Tier._order()[Tier.master]
-        league = self._one(self._session().query(SQLLeague) \
+        league = self._one(session.query(SQLLeague) \
                            .filter_by(platformId=platform) \
                            .filter_by(queueId=queue.id) \
                            .filter_by(tier=tier))
@@ -474,27 +489,27 @@ class SQLStore(DataSource, DataSink):
         has("summoner.id").as_(int).also. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(LeaguePositionsDto)
     @validate_query(_validate_get_league_positions_query, convert_region_to_platform)
-    def get_league_positions(self, query: MutableMapping[str, Any],
+    @dbconnect
+    def get_league_positions(self, session, query: MutableMapping[str, Any],
                              context: PipelineContext = None) -> LeaguePositionsDto:
         platform = query["platform"].value
         summonerId = query["summoner.id"]
-        positions = self._one(self._session().query(SQLLeaguePositions) \
+        positions = self._one(session.query(SQLLeaguePositions) \
                               .filter_by(platformId=platform) \
                               .filter_by(summonerId=summonerId))
         dto = positions.to_dto()
         dto["region"] = Platform(dto["platformId"]).region.value
         return dto
 
-    @dbconnect
     @put.register(LeaguePositionsDto)
-    def put_league_positions(self, item: LeaguePositionsDto, context: PipelineContext = None) -> None:
+    @dbconnect
+    def put_league_positions(self, session, item: LeaguePositionsDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         item["platformId"] = platform
         old_positions = []
-        query = self._session().query(SQLLeaguePosition) \
+        query = session.query(SQLLeaguePosition) \
             .filter_by(platformId=platform) \
             .filter_by(playerOrTeamId=item["summonerId"])
         if query.count() > 0:
@@ -509,10 +524,10 @@ class SQLStore(DataSource, DataSink):
                 old_positions[i].__init__(**map_by_id[old_positions[i].leagueId])
                 # Remove from map to prevent inserting it twice later on
                 del map_by_id[old_positions[i].leagueId]
-                self._session().merge(old_positions[i])
+                session.merge(old_positions[i])
             else:
                 # The given position is no longer present. remove it
-                self._session().delete(old_positions[i])
+                session.delete(old_positions[i])
 
         for pos in map_by_id.values():
             # Create league, so it does get created in the database if it doesn't exist
@@ -526,7 +541,7 @@ class SQLStore(DataSource, DataSink):
             position = SQLLeaguePosition(**pos, league=league)
             # This will not call SQlLeague.updated() to make sure we don't mess up the expiration of the hole league
             position.updated()
-            self._session().merge(position)
+            session.merge(position)
 
         self._put(SQLLeaguePositions(summonerId=item["summonerId"], platformId=platform, positions=[]))
 
@@ -537,24 +552,23 @@ class SQLStore(DataSource, DataSink):
     _validate_get_status_query = Query. \
         has("platform").as_(Platform)
 
-    @dbconnect
     @get.register(ShardStatusDto)
     @validate_query(_validate_get_status_query, convert_region_to_platform)
-    def get_status(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> ShardStatusDto:
-        status = self._one(self._session().query(SQLShardStatus) \
+    @dbconnect
+    def get_status(self, session, query: MutableMapping[str, Any], context: PipelineContext = None) -> ShardStatusDto:
+        status = self._one(session.query(SQLShardStatus) \
                            .filter_by(slug=query["platform"].region.value.lower()))
         return status.to_dto()
 
-    @dbconnect
     @put.register(ShardStatusDto)
-    def put_status(self, item: ShardStatusDto, context: PipelineContext = None) -> None:
+    @dbconnect
+    def put_status(self, session, item: ShardStatusDto, context: PipelineContext = None) -> None:
         try:
             # Try to get stored shard status to update it
-            shard = self._session().query(SQLShardStatus) \
+            shard = session.query(SQLShardStatus) \
                 .filter_by(slug=item["slug"]).one()
             shard.__init__(**item)
-            self._session().merge(shard)
+            session.merge(shard)
         except:
             # No shard status stored. Just put a new one
             self._put(SQLShardStatus(**item))
-            pass
