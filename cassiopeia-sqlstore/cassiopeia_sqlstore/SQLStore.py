@@ -114,6 +114,7 @@ class SQLStore(DataSource, DataSink):
         try:
             result = query.one()
             if result.has_expired(self._expirations):
+                self._session().delete(result)
                 raise NotFoundError
             return result
         except (NoResultFound, MultipleResultsFound):
@@ -122,10 +123,11 @@ class SQLStore(DataSource, DataSink):
     def _first(self, query):
         """Gets the first row of the query. Raises NotFoundError if there isn't a row"""
         result = query.first()
-        if result is None:
+        if result is None:           
             raise NotFoundError
         else:
             if result.has_expired(self._expirations):
+                self._session().delete(result)
                 raise NotFoundError
             return result
 
@@ -135,6 +137,7 @@ class SQLStore(DataSource, DataSink):
             results = query.all()
             for result in results:
                 if result.has_expired(self._expirations):
+                     self._session().delete(result)
                     raise NotFoundError
             return results
         else:
@@ -147,7 +150,7 @@ class SQLStore(DataSource, DataSink):
             # The expiration time has been set to 0 -> shoud not be cached
             return
         item.updated()
-        self._session().merge(item)
+        self._session().add(item)
 
     @dbconnect
     def _put_many(self, items: Iterable[DtoObject], cls):
@@ -159,7 +162,7 @@ class SQLStore(DataSource, DataSink):
         for item in items:
             item = cls(**item)
             item.updated()
-            session.merge(item)
+            session.add(item)
 
     ####################
     # Summoner Endpoint#
