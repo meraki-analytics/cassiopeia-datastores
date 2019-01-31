@@ -5,7 +5,7 @@ from decimal import Decimal
 from cassiopeia.dto.match import MatchDto
 from cassiopeia.dto.common import DtoObject
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, foreignkey_options
 
 
 class MatchParticipantTimelineDeltasDto(DtoObject):
@@ -27,7 +27,9 @@ class SQLMatchParticipantTimelineDeltas(SQLBaseObject):
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId", "match_participant_participantId"],
                        ["match_participant_timeline.match_platformId", "match_participant_timeline.match_gameId",
-                        "match_participant_timeline.match_participant_participantId"]))
+                        "match_participant_timeline.match_participant_participantId"],
+                        **foreignkey_options
+                    ))
     _constants = ["type"]
 
     def to_dto(self):
@@ -56,7 +58,9 @@ class SQLMatchParticipantTimeline(SQLBaseObject):
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId", "match_participant_participantId"],
                        ["match_participant.match_platformId", "match_participant.match_gameId",
-                        "match_participant.participantId"]))
+                        "match_participant.participantId"],
+                        **foreignkey_options
+                    ))
     _relationships = {"deltas": (SQLMatchParticipantTimelineDeltas, {})}
 
     def __init__(self, **kwargs):
@@ -188,7 +192,9 @@ class SQLMatchParticipantStats(SQLBaseObject):
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId", "match_participant_participantId"],
                        ["match_participant.match_platformId", "match_participant.match_gameId",
-                        "match_participant.participantId"]))
+                        "match_participant.participantId"],
+                        **foreignkey_options
+                    ))
     _dto_type = MatchParticipantStatsDto
 
 
@@ -211,7 +217,9 @@ class SQLMatchParticipant(SQLBaseObject):
                    Column("spell2Id", Integer),
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId"],
-                       ["match.platformId", "match.gameId"]))
+                       ["match.platformId", "match.gameId"],
+                       **foreignkey_options
+                    ))
     _relationships = {
         "stats": (SQLMatchParticipantStats, {"uselist": False}),
         "timeline": (SQLMatchParticipantTimeline, {"uselist": False})
@@ -240,7 +248,9 @@ class SQLMatchParticipantsIdentities(SQLBaseObject):
                    Column("p_matchHistoryUri", String(80)),
                    ForeignKeyConstraint(
                        ["p_currentPlatformId", "match_gameId"],
-                       ["match.platformId", "match.gameId"]))
+                       ["match.platformId", "match.gameId"],
+                       **foreignkey_options
+                    ))
 
     def __init__(self, **kwargs):
         player = kwargs.pop("player")
@@ -276,7 +286,9 @@ class SQLMatchBan(SQLBaseObject):
                    Column("teamId", Integer),
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId", "teamId"],
-                       ["match_team.match_platformId", "match_team.match_gameId", "match_team.teamId"]))
+                       ["match_team.match_platformId", "match_team.match_gameId", "match_team.teamId"],
+                       **foreignkey_options
+                    ))
 
 
 map_object(SQLMatchBan)
@@ -307,7 +319,9 @@ class SQLMatchTeam(SQLBaseObject):
                    Column("win", Boolean),
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId"],
-                       ["match.platformId", "match.gameId"]))
+                       ["match.platformId", "match.gameId"],
+                       **foreignkey_options
+                    ))
     _relationships = {"bans": (SQLMatchBan, {})}
 
     def __init__(self, **dwargs):

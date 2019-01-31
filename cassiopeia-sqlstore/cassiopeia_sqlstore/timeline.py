@@ -3,7 +3,7 @@ from sqlalchemy import Table, Column, Integer, String, BigInteger, ForeignKeyCon
 from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.match import TimelineDto
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, foreignkey_options
 
 
 class TimelineFrameEventDto(DtoObject):
@@ -34,7 +34,8 @@ class SQLTimelineFrameEvent(SQLBaseObject):
                    ForeignKeyConstraint(
                        ["match_timeline_matchId", "match_timeline_platformId", "match_timeline_frame_id"],
                        ["match_timeline_frame.match_timeline_matchId", "match_timeline_frame.match_timeline_platformId",
-                        "match_timeline_frame.id"]
+                        "match_timeline_frame.id"],
+                        **foreignkey_options
                    ))
     _constants = ["type", "wardType", "levelUpType", "eventType", "towerType", "monsterType", "monsterSubType",
                   "buildingType"]
@@ -80,7 +81,8 @@ class SQlTimelineParticipantFrame(SQLBaseObject):
                    ForeignKeyConstraint(
                        ["match_timeline_matchId", "match_timeline_platformId", "match_timeline_frame_id"],
                        ["match_timeline_frame.match_timeline_matchId", "match_timeline_frame.match_timeline_platformId",
-                        "match_timeline_frame.id"]
+                        "match_timeline_frame.id"],
+                        **foreignkey_options
                    ))
 
     def __init__(self, **kwargs):
@@ -114,7 +116,8 @@ class SQLTimelineFrame(SQLBaseObject):
                    Column("timestamp", Integer),
                    ForeignKeyConstraint(
                        ["match_timeline_matchId", "match_timeline_platformId"],
-                       ["match_timeline.matchId", "match_timeline.platformId"]
+                       ["match_timeline.matchId", "match_timeline.platformId"],
+                       **foreignkey_options
                    ))
     _relationships = {
         "participantFrames": (SQlTimelineParticipantFrame, {"lazy": "selectin"}),
