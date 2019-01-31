@@ -189,6 +189,9 @@ class SQLMatchParticipantStats(SQLBaseObject):
                    Column("perk5Var3", Integer),
                    Column("perkPrimaryStyle", Integer),
                    Column("perkSubStyle", Integer),
+                   Column("statPerk0", Integer),
+                   Column("statPerk1", Integer),
+                   Column("statPerk2", Integer),
                    ForeignKeyConstraint(
                        ["match_platformId", "match_gameId", "match_participant_participantId"],
                        ["match_participant.match_platformId", "match_participant.match_gameId",
