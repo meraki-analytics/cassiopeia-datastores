@@ -107,7 +107,12 @@ class SQLStore(DataSource, DataSink):
         def inner(*args, **kwargs):
             session = args[0]._session()
             try:
-                result = func(*(args[0], session, *(args[1:])), **kwargs)
+                if len(args) == 1:
+                    result = func(args[0], session, **kwargs)
+                elif len(args) == 2:
+                    result = func(args[0], session, args[1], **kwargs)
+                else:
+                    result = func(*(args[0], session, *(args[1:])), **kwargs)
                 session.commit()
                 return result
             except SQLStore.ItemExpiredException as e:   
@@ -117,16 +122,14 @@ class SQLStore(DataSource, DataSink):
                 raise NotFoundError
             except:
                 session.rollback()
-                raise
-            finally:
-                session.close()                
+                raise               
 
         return inner
 
     def _one(self, query):
         """ Gets one row from the query. 
             Raises NotFoundError if there isn't a row or if there are multiple rows
-            Raised ItemExpiredException if the row exists but is expired
+            Raised ItemExpiredException if the row exists but it's expired
         """
         try:
             result = query.one()
@@ -137,7 +140,10 @@ class SQLStore(DataSource, DataSink):
             raise NotFoundError
 
     def _first(self, query):
-        """Gets the first row of the query. Raises NotFoundError if there isn't a row"""
+        """ Gets the first row of the query. 
+            Raises NotFoundError if there isn't a row
+            Raises ItemExpiredException if a row exists but it's expired
+        """
         result = query.first()
         if result is None:           
             raise NotFoundError
@@ -147,7 +153,10 @@ class SQLStore(DataSource, DataSink):
             return result
 
     def _all(self, query):
-        """Gets all rows of the query. Raises a NotFoundError if there are 0 rows"""
+        """ Gets all rows of the query. 
+            Raises a NotFoundError if there are 0 rows
+            Raised ItemExpiredException if any of the rows have expired
+        """
         if query.count() > 0:
             results = query.all()
             expiredItems = []
@@ -382,7 +391,7 @@ class SQLStore(DataSource, DataSink):
     @put.register(GrandmasterLeagueListDto)
     @dbconnect
     def put_league(self, session, item: LeagueListDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"], session).platform.value
+        platform = Region(item["region"]).platform.value
         item["platformId"] = platform
         # Get league to update it later if it exists
         league = session.query(SQLLeague) \
