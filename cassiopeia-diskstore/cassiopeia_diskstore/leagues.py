@@ -3,7 +3,7 @@ from typing import Type, TypeVar, MutableMapping, Any, Iterable
 from datapipelines import DataSource, DataSink, PipelineContext, Query, validate_query
 
 from cassiopeia.data import Platform, Region, Queue, Tier, Division, Position
-from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, GrandmasterLeagueListDto, ChallengerLeagueListDto, LeagueListDto, LeaguePositionsListDto
+from cassiopeia.dto.league import LeaguePositionsDto, LeaguesListDto, MasterLeagueListDto, GrandmasterLeagueListDto, ChallengerLeagueListDto, LeagueListDto, PositionalLeaguesListDto
 from cassiopeia.datastores.uniquekeys import convert_region_to_platform
 from .common import SimpleKVDiskService
 
@@ -81,11 +81,11 @@ class LeaguesDiskService(SimpleKVDiskService):
         has("page").as_(int).also. \
         has("platform").as_(Platform)
 
-    @get.register(LeaguePositionsListDto)
+    @get.register(PositionalLeaguesListDto)
     @validate_query(_validate_get_league_positions_list_query, convert_region_to_platform)
-    def get_league_positions_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> LeaguePositionsListDto:
+    def get_league_positions_list(self, query: MutableMapping[str, Any], context: PipelineContext = None) -> PositionalLeaguesListDto:
         key = "{clsname}.{platform}.{queue}.{tier}.{division}.{position}.{page}".format(
-            clsname=LeaguePositionsListDto.__name__,
+            clsname=PositionalLeaguesListDto.__name__,
             platform=query["platform"].value,
             queue=query["queue"].value,
             tier=query["tier"].value,
@@ -93,13 +93,13 @@ class LeaguesDiskService(SimpleKVDiskService):
             position=query["position"].value,
             page=query["page"]
         )
-        return LeaguePositionsListDto(self._get(key))
+        return PositionalLeaguesListDto(self._get(key))
 
-    @put.register(LeaguePositionsListDto)
-    def put_league_positions_list(self, item: LeaguePositionsListDto, context: PipelineContext = None) -> None:
+    @put.register(PositionalLeaguesListDto)
+    def put_league_positions_list(self, item: PositionalLeaguesListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         key = "{clsname}.{platform}.{queue}.{tier}.{division}.{position}.{page}".format(
-            clsname=LeaguePositionsListDto.__name__,
+            clsname=PositionalLeaguesListDto.__name__,
             platform=platform,
             queue=item["queue"],
             tier=item["tier"],
