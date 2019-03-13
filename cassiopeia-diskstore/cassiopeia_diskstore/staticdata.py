@@ -118,7 +118,7 @@ class StaticDataDiskService(SimpleKVDiskService):
         has("platform").as_(Platform).also. \
         can_have("version").with_default(_get_latest_version, supplies_type=str).also. \
         can_have("locale").with_default(_get_default_locale, supplies_type=str).also. \
-        can_have("includedData").with_default({"all"}).also. \
+        can_have("includedData").with_default({"all"})
 
     @get.register(ChampionListDto)
     @validate_query(_validate_get_champion_list_query, convert_region_to_platform)
