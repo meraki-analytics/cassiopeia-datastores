@@ -119,7 +119,6 @@ class StaticDataDiskService(SimpleKVDiskService):
         can_have("version").with_default(_get_latest_version, supplies_type=str).also. \
         can_have("locale").with_default(_get_default_locale, supplies_type=str).also. \
         can_have("includedData").with_default({"all"}).also. \
-        can_have("dataById").with_default(True)
 
     @get.register(ChampionListDto)
     @validate_query(_validate_get_champion_list_query, convert_region_to_platform)
@@ -128,13 +127,11 @@ class StaticDataDiskService(SimpleKVDiskService):
         version = query["version"]
         locale = query["locale"]
         included_data = "|".join(sorted(query["includedData"]))
-        data_by_id = str(query["dataById"])
-        key = "{clsname}.{platform}.{version}.{locale}.{included_data}.{data_by_id}".format(clsname=ChampionListDto.__name__,
+        key = "{clsname}.{platform}.{version}.{locale}.{included_data}".format(clsname=ChampionListDto.__name__,
                                                                                             platform=platform,
                                                                                             version=version,
                                                                                             locale=locale,
-                                                                                            included_data=included_data,
-                                                                                            data_by_id=data_by_id)
+                                                                                            included_data=included_data)
         data = self._get(key)
         data["data"] = {key: ChampionDto(champion) for key, champion in data["data"].items()}
         return ChampionListDto(data)
@@ -143,12 +140,11 @@ class StaticDataDiskService(SimpleKVDiskService):
     def put_champion_list(self, item: ChampionListDto, context: PipelineContext = None) -> None:
         platform = Region(item["region"]).platform.value
         included_data = "|".join(sorted(item["includedData"]))
-        key = "{clsname}.{platform}.{version}.{locale}.{included_data}.{data_by_id}".format(clsname=ChampionListDto.__name__,
+        key = "{clsname}.{platform}.{version}.{locale}.{included_data}".format(clsname=ChampionListDto.__name__,
                                                                                             platform=platform,
                                                                                             version=item["version"],
                                                                                             locale=item["locale"],
-                                                                                            included_data=included_data,
-                                                                                            data_by_id=item["dataById"])
+                                                                                            included_data=included_data)
         self._put(key, item)
 
     #########
