@@ -472,9 +472,9 @@ class StaticDataDiskService(SimpleKVDiskService):
                     return dto
 
         if "id" in query:
-            rune = find_matching_attribute(runes["data"].values(), "runeId", str(query["id"]))
+            rune = find_matching_attribute(runes["data"], "runeId", str(query["id"]))
         elif "name" in query:
-            rune = find_matching_attribute(runes["data"].values(), "runeName", query["name"])
+            rune = find_matching_attribute(runes["data"], "runeName", query["name"])
         else:
             raise ValueError("Impossible!")
         if rune is None:
@@ -509,4 +509,3 @@ class StaticDataDiskService(SimpleKVDiskService):
                                                                version=item["version"],
                                                                locale=item["locale"])
         self._put(key, item)
-
