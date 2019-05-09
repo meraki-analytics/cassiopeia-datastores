@@ -4,7 +4,7 @@ from cassiopeia.data import Platform
 from cassiopeia.dto.spectator import CurrentGameInfoDto
 from cassiopeia.dto.common import DtoObject
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, foreignkey_options
 
 
 class CurrentGameParticipantDto(DtoObject):
@@ -48,7 +48,8 @@ class SQLCurrentGameBan(SQLBaseObject):
                    Column("championId", Integer),
                    ForeignKeyConstraint(
                        ["current_game_platformId", "current_game_gameId"],
-                       ["current_game.platformId", "current_game.gameId"]
+                       ["current_game.platformId", "current_game.gameId"],
+                       **foreignkey_options
                    ))
 
 

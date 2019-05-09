@@ -3,7 +3,7 @@ from sqlalchemy import Table, Column, Integer, String, BigInteger, ForeignKeyCon
 from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.dto.common import DtoObject
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, foreignkey_options
 
 
 class ChampionRotationChampionDto(DtoObject):
@@ -18,7 +18,8 @@ class SQlChampionRotationChampion(SQLBaseObject):
                    Column("rotationKeyId", Integer, primary_key=True),
                    ForeignKeyConstraint(
                        ["platform"],
-                       ["championrotation.platform"]
+                       ["championrotation.platform"],
+                       **foreignkey_options
                    ))
     _constants = ["rotationKey"]
 

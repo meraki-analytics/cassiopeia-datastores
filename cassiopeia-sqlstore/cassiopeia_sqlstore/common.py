@@ -8,6 +8,7 @@ from cassiopeia.dto.common import DtoObject
 
 metadata = MetaData()
 
+foreignkey_options = {'onupdate':"CASCADE", 'ondelete':"CASCADE"}
 
 class SQLBaseObject(object):
     def __init__(self, **kwargs):
@@ -75,7 +76,7 @@ class SQLBaseObject(object):
             for key, value in cls._relationships.items():
                 if not "lazy" in value[1]:
                     value[1]["lazy"] = "joined"
-                prop[key] = relationship(value[0], cascade="all, delete-orphan", **value[1])
+                prop[key] = relationship(value[0], cascade="all, delete, delete-orphan", **value[1])
         if hasattr(cls, '_constants'):
             for key in cls._constants:
                 column_name = key + "Id"
