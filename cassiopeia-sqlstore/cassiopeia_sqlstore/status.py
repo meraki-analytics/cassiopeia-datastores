@@ -5,7 +5,7 @@ from cassiopeia.dto.common import DtoObject
 
 from cassiopeia.data import Region
 
-from .common import metadata, SQLBaseObject, map_object
+from .common import metadata, SQLBaseObject, map_object, foreignkey_options
 
 
 class ShardStatusIncidentUpdateTranslationDto(DtoObject):
@@ -21,7 +21,8 @@ class SQlShardStatusIncidentUpdateTranslation(SQLBaseObject):
                    Column("content", Text),
                    ForeignKeyConstraint(
                        ["incident_id"],
-                       ["status_incident_update.id"]
+                       ["status_incident_update.id"],
+                       **foreignkey_options
                    ))
 
 
@@ -46,7 +47,8 @@ class SQlShardStatusIncidentUpdate(SQLBaseObject):
                    Column("updated_at", String(80)),
                    ForeignKeyConstraint(
                        ["status_slug", "status_service_slug", "status_incident_id"],
-                       ["status_incident.status_slug", "status_incident.status_service_slug", "status_incident.id"]
+                       ["status_incident.status_slug", "status_incident.status_service_slug", "status_incident.id"],
+                       **foreignkey_options
                    ))
     _relationships = {"translations": (SQlShardStatusIncidentUpdateTranslation, {})}
 
@@ -68,7 +70,9 @@ class SQlShardStatusIncident(SQLBaseObject):
                    Column("created_at", String(80)),
                    ForeignKeyConstraint(
                        ["status_slug", "status_service_slug"],
-                       ["status_service.status_slug", "status_service.slug"]))
+                       ["status_service.status_slug", "status_service.slug"],
+                       **foreignkey_options
+                    ))
     _relationships = {"updates": (SQlShardStatusIncidentUpdate, {})}
 
 
@@ -87,7 +91,9 @@ class SQLShardStatusService(SQLBaseObject):
                    Column("name", String(20)),
                    ForeignKeyConstraint(
                        ["status_slug"],
-                       ["status.slug"]))
+                       ["status.slug"],
+                       **foreignkey_options
+                    ))
     _relationships = {"incidents": (SQlShardStatusIncident, {})}
 
 
