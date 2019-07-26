@@ -10,7 +10,7 @@ from datapipelines import DataSource, DataSink, PipelineContext, NotFoundError
 from cassiopeia.dto.common import DtoObject
 from cassiopeia.dto.champion import ChampionRotationDto
 from cassiopeia.dto.championmastery import ChampionMasteryDto, ChampionMasteryListDto
-from cassiopeia.dto.league import LeaguePositionsDto, LeagueListDto, MasterLeagueListDto, ChallengerLeagueListDto, GrandmasterLeagueListDto, PositionalLeaguesListDto
+from cassiopeia.dto.league import MasterLeagueListDto, ChallengerLeagueListDto, GrandmasterLeagueListDto
 from cassiopeia.dto.staticdata import ChampionDto, ChampionListDto, RuneDto, RuneListDto, ItemDto, ItemListDto, SummonerSpellDto, SummonerSpellListDto, MapDto, MapListDto, RealmDto, ProfileIconDataDto, ProfileIconDetailsDto, LanguagesDto, LanguageStringsDto, VersionListDto
 from cassiopeia.dto.match import MatchDto, TimelineDto
 from cassiopeia.dto.summoner import SummonerDto
@@ -64,12 +64,9 @@ class SimpleKVDiskService(DataSource, DataSink):
             ChampionRotationDto: datetime.timedelta(days=1),
             ChampionMasteryDto: datetime.timedelta(days=7),
             ChampionMasteryListDto: datetime.timedelta(days=7),
-            LeaguePositionsDto: datetime.timedelta(hours=6),
-            LeagueListDto: datetime.timedelta(hours=6),
             ChallengerLeagueListDto: datetime.timedelta(hours=6),
             GrandmasterLeagueListDto: datetime.timedelta(hours=6),
             MasterLeagueListDto: datetime.timedelta(hours=6),
-            PositionalLeaguesListDto: datetime.timedelta(hours=6),
             MatchDto: -1,
             TimelineDto: -1,
             SummonerDto: datetime.timedelta(days=1),
