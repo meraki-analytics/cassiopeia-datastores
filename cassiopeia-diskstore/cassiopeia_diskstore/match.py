@@ -43,7 +43,7 @@ class MatchDiskService(SimpleKVDiskService):
 
     @put.register(MatchDto)
     def put_match(self, item: MatchDto, context: PipelineContext = None) -> None:
-        platform = Region(item["region"]).platform.value
+        platform = Platform(item["platformId"]).value
         key = "{clsname}.{platform}.{id}".format(clsname=MatchDto.__name__,
                                                  platform=platform,
                                                  id=item["gameId"])
