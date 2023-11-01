@@ -32,7 +32,7 @@ class SimpleKVDiskService(DataSource, DataSink):
             os.mkdir(path)
         self._store = simplekv.fs.FilesystemStore(path)
         self._expirations = dict(expirations) if expirations is not None else self._default_expirations
-        for key, value in self._expirations.items():
+        for key, value in self._expirations.copy().items():
             if isinstance(key, str):
                 new_key = globals()[key]
                 self._expirations[new_key] = self._expirations.pop(key)
