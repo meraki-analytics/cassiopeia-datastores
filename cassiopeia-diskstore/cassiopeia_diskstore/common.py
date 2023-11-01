@@ -100,6 +100,8 @@ class SimpleKVDiskService(DataSource, DataSink):
         try:
             data, timeout, entered = pickle.loads(self._store.get(key))
             now = datetime.datetime.now().timestamp()
+            if isinstance(timeout, datetime.timedelta):
+                timeout = timeout.seconds
             if timeout != "forever" and now > entered + timeout:
                 self._store.delete(key)
                 raise NotFoundError
